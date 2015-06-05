@@ -1,0 +1,779 @@
+<!doctype html>
+<html>
+<head>
+	<meta charset="utf-8">
+    <link rel="icon" href="../static/img/favicon.ico" type="image/x-icon" />
+    <link href="../static/css/bootstrap.css" rel="stylesheet" type="text/css" />
+    <link href="../static/css/bootstrap-responsive.css" rel="stylesheet" type="text/css" />
+    <link href="../static/css/docs.css" rel="stylesheet" type="text/css" />
+    <link href="../static/css/popbox.css" rel="stylesheet" type="text/css" />
+    <link href="../static/css/admin.css" rel="stylesheet" type="text/css" />
+	<script src="../static/js/jquery.min.js" type="text/javascript"></script>
+    <script src="../static/js/bootstrap.min.js" type="text/javascript"></script>
+    <script src="../static/js/bootstrap-tooltip.js" type="text/javascript"></script>
+    <script src="../static/js/popbox.js" type="text/javascript"></script>
+    <script src="../static/js/bootstrap-modal.js" type="text/javascript"></script>
+    <script src="../static/js/jssha256.js" type="text/javascript"></script>
+    <script src="../static/js/blob.js" type="text/javascript"></script>
+    <script src="../static/js/fileSaver.js" type="text/javascript"></script>
+    <script src="../static/js/highCharts/highcharts.js" type="text/javascript"></script>
+    <script src="../static/js/common.js" type="text/javascript"></script>
+    <script src="../static/js/configuration.js" type="text/javascript"></script>
+    <script src="../static/js/admin.js" type="text/javascript"></script>
+    <!--[if lte IE 6]>    
+    	<link rel="stylesheet" type="text/css" href="../static/css/bootstrap-ie6.css">
+        <link rel="stylesheet" type="text/css" href="../static/css/ie.css">
+        <script type="text/javascript" src="../static/js/bootstrap-ie.js"></script>
+    <![endif]-->
+    <title>Meepo管理界面</title>
+    <script type="text/javascript">
+		check_logging();
+	</script>
+</head>
+
+<body data-spy="scroll" data-target=".bs-docs-sidebar" class="homeBody">
+	<!--Navbar start-->
+	<div class="navbar navbar-inverse navbar-fixed-top">
+    	<div class="navbar-inner">
+        	<a class="brand" href="#" style="float:left;">MeePo</a>
+            <ul class="nav pull-right">
+            	<li class="divider-vertical"></li>
+                <li class="bar-font">
+                	<div class="popbox">
+                    	<a href="#" id="resetOpen" class="bar-font">您好，supervisor</a>
+                        <input type="hidden" value="" name="" id="supervisor_info">
+                        <div class="pop-collapse">
+                            <div class="box"  style="display:none;top:10px;left:0px;">
+                              <div class="arrow" style="left:165px;"></div>
+                              <div class="arrow-border" style="left:165px;"></div>
+                              <div class="box-content">
+                              	<div class="control-group">
+                                   <input type="text" id="last_password" placeholder="原始密码">
+                                   <input type="text" id="new_password" placeholder="新密码">
+                                   <input type="text" id="new_password_confirm" placeholder="密码确认">
+                                </div>
+                                <div class="box-button-group">
+                                	<button type="button" class="btn" id="reset_passowrd_submit">确定</button>
+                                	<button type="button" class="btn">取消</button>
+                                </div>
+                              </div>
+                            </div>
+                    	</div>
+                	</div>
+                </li>
+                <li>
+                	<a id="admin_logout" class="bar-font">注销</a>
+                </li>
+                <li></li>
+            </ul>
+        </div>
+    </div>
+    <!--Navbar end-->
+    
+    <!--Header start-->
+    <header>
+    	<div class="navbar">
+        	<div class="navbar-inner">
+            	<ul class="nav pull-left">
+                	<li class="active" id="userManage"><a>用户管理</a></li>
+                    <li class="divider-vertical"></li>
+                    <li id="quotaManage"><a>配额管理</a></li>
+                    <li class="divider-vertical"></li>
+                    <li id="groupManage"><a>群组管理</a></li>
+                    <li class="divider-vertical"></li>
+                    <li id="dataManage"><a>导入导出</a></li>
+                    <li class="divider-vertical"></li>
+                    <li id="infoManage"><a>信息统计</a></li>
+                    <li class="divider-vertical"></li>
+                    <li id="clientManage"><a>客户端管理</a></li>
+                    <li class="divider-vertical"></li>
+                </ul>
+            </div>
+        </div>
+    </header>
+    <!--Header end-->
+    <!--Container start-->
+    <div class="container">
+    	<!--User manage start-->
+        <div id="user_manage" class="panel-style" style="display:block">
+        	<div class="printDiv form-horizontal container-fluid">
+            	<div class="row-fluid manage_bar">
+                	<div class="pull-left">
+                    	<img src="../static/img/user_manage.jpg" class="img-rounded">用户管理
+                    </div>
+                	<div class="pull-right">
+                    	<div class="btn-group">
+                            <!--<button class="btn btn-small" id="user_delete_manage">Delete</button>-->
+                            <button class="btn btn-small" id="user_edit_manage">编辑</button>
+                            <button class="btn btn-small" id="user_cancel_manage">取消</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="showDiv form-horizontal container-fluid">
+            	<div class="row-fluid">
+                	<div class="pull-left form-search">
+                    	<div class="input-append">
+                        	<input type="text" class="span8 search-query" placeholder="请输入用户名" id="user_search_name" onKeyDown="keyDown('user_search')">
+                            <button type="button" class="btn" id="user_search_submit">搜索</button>
+                        </div>
+                    </div>
+                    <div id="user_error_prompt" style="display:none">
+                    	<div class="alert alert-error span6">
+                        	<button type="button" class="close" id="user_error_close">×</button>
+                            <strong>错误!! </strong>可用群组数是0~10之间的整数
+                        </div>
+                    </div>
+                    <div id="user_success_prompt" style="display:none">
+                    	<div class="alert alert-success span6">
+                        	<button type="button" class="close" id="user_success_close">×</button>
+                            <strong>恭喜!! </strong>数据更新成功!!
+                        </div>
+                    </div>
+                    <!--<div class="pull-right">
+                        <select id="" class="mySelect" disabled>
+                        	<option>--选择用户状态--</option>
+                            <option>已启用</option>
+                            <option>已禁用</option>
+                        </select>
+                    </div>-->
+                </div>
+                <div>
+                	<table class="table table-bordered table-striped manage_table" id="user_table">
+                    	<thead>
+                        	<tr>
+                            	<th>#</th>
+                                <th><input type="checkbox" id="user_check_manage"></th>
+                                <th>用户名</th>
+                                <th>昵称</th>
+                                <th>邮箱</th>
+                                <th>注册时间</th>
+                                <th>可用群组数</th>
+                                <th>密码</th>
+                                <th>状态</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                    <div class="pagination pagination-centered">
+                    	<ul>
+                        	<li><a id="user_page_first">first</a></li>
+                        	<li><a id="user_page_left">&laquo;</a></li>
+                            <li><a id="user_page_label">----------</a></li>
+                        	<li><a id="user_page_right">&raquo;</a></li>
+                            <li><a id="user_page_last">Last</a></li>
+                        </ul>
+                        <input type="hidden" value="1" id="user_page_current_number">
+                        <input type="hidden" value="1" id="user_page_total_number">
+                        <input type="hidden" value="0" id="user_page_select_flag">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!--User manage end-->
+        
+        <!--Quota manage start-->
+        <div id="quota_manage" class="panel-style" style="display:none">
+        	<div class="printDiv form-horizontal container-fluid">
+            	<div class="row-fluid manage_bar">
+                	<div class="pull-left">
+                    	<img src="../static/img/quota_manage.jpg" class="img-rounded">配额管理
+                    </div>
+                </div>
+            </div>
+            <div class="showDiv form-horizontal container-fluid">
+                <div class="row-fluid">
+                	<div class="row-fluid printDiv" style="width:98%">
+                        <div class="pull-left form-search">
+                            <div class="input-append">
+                                <input type="text" class="span8 search-query" placeholder="请输入用户名" id="quota_user_search_name" onKeyDown="keyDown('quota_user_search')">
+                                <input type="hidden" id="quota_user_id">
+                                <button type="button" class="btn" id="quota_user_search">搜索</button>
+                            </div>
+                        </div>
+                        <div id="quota_user_success_prompt" style="display:none">
+                            <div class="alert alert-success span7">
+                                <button type="button" class="close" id="quota_user_success_close">×</button>
+                                <strong>恭喜!! </strong>数据更新成功!!
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row-fluid divider-horizontal"></div>
+                    <div class="row-fluid divSlide" id="quota_user_slide">
+                    	<div class="eachSlice firstSlice">
+                        	<div class="row-fluid">
+                                <table class="table table-bordered table-striped manage_table" id="quota_user_table">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>用户名</th>
+                                            <th>昵称</th>
+                                            <th>邮箱</th>
+                                            <th>修改配额</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                                <div class="pagination pagination-centered">
+                                    <ul>
+                                        <li><a id="quota_user_page_first">first</a></li> 
+                                        <li><a id="quota_user_page_left">&laquo;</a></li>
+                                        <li><a id="quota_user_page_label">----------</a></li>
+                                        <li><a id="quota_user_page_right">&raquo;</a></li>
+                                        <li><a id="quota_user_page_last">Last</a></li>
+                                    </ul>
+                                    <input type="hidden" value="1" id="quota_user_page_current_number">
+                                    <input type="hidden" value="1" id="quota_user_page_total_number">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="eachSlice">
+                        	<div class="row-fluid">
+                            	<input type="hidden" id="quota_user_usage_number" value="0">
+                            	<ul class="pager" style="margin:0px 0px !important;">
+                                	<li class="previous"><a id="quota_user_slide_back">&larr; Back</a></li>
+                                </ul>
+                            	<div class="control-group">
+                                    <label class="control-label" for="quota_user_name">用户名</label>
+                                    <div class="controls">
+                                        <input id="quota_user_name" type="text" disabled>
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label class="control-label" for="quota_user_usage">使用量</label>
+                                    <div class="controls">
+                                        <div class="progress progress-striped active span2 myProgress">
+                                            <div class="bar" style="width:0%" id="quota_user_usage"></div>
+                                        </div>
+                                        <span class="progressFont" id="quota_user_usage_str">0%</span>
+                                    </div>
+                                </div>
+                                <div class="control-group" id="quota_user_quota_controls">
+                                    <label class="control-label" for="quota_user_quota">用户配额</label>
+                                    <div class="controls">
+                                        <div class="input-append">
+                                            <input type="text" id="quota_user_quota" style="width:175px">
+                                            <span class="add-on">GB</span>
+                                        </div>
+                                        <span class="help-inline">配额必须为0~10000的整数</span>
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <div class="controls">
+                                        <button type="button" id="quota_user_submit" class="btn" disabled>确定</button>
+                                        <button type="button" id="quota_user_cancel" class="btn">取消</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+               	 </div>
+                 <div class="row-fluid">
+                	<div class="row-fluid printDiv" style="width:98%">
+                        <div class="pull-left form-search">
+                            <div class="input-append">
+                                <input type="text" class="span8 search-query" placeholder="请输入群组名" id="quota_group_search_name" onKeyDown="keyDown('quota_group_search')">
+                                <input type="hidden" id="quota_group_id">
+                                <button type="button" class="btn" id="quota_group_search">搜索</button>
+                            </div>
+                        </div>
+                        <div id="quota_group_success_prompt" style="display:none">
+                            <div class="alert alert-success span7">
+                                <button type="button" class="close" id="quota_group_success_close">×</button>
+                                <strong>恭喜!! </strong>数据更新成功!!
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row-fluid divider-horizontal"></div>
+                    <div class="row-fluid divSlide" id="quota_group_slide">
+                        <div class="eachSlice firstSlice">
+                            <div class="row-fluid">
+                                <table class="table table-bordered table-striped manage_table" id="quota_group_table">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>群组名</th>
+                                            <th>描述</th>
+                                            <th>标签</th>
+                                            <th>修改配额</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                                <div class="pagination pagination-centered">
+                                    <ul>
+                                        <li><a id="quota_group_page_first">first</a></li> 
+                                        <li><a id="quota_group_page_left">&laquo;</a></li>
+                                        <li><a id="quota_group_page_label">----------</a></li>
+                                        <li><a id="quota_group_page_right">&raquo;</a></li>
+                                        <li><a id="quota_group_page_last">Last</a></li>
+                                    </ul>
+                                    <input type="hidden" value="1" id="quota_group_page_current_number">
+                                    <input type="hidden" value="1" id="quota_group_page_total_number">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="eachSlice">
+                            <div class="row-fluid">
+                            	<input type="hidden" id="quota_group_usage_number" value="0">
+                            	<ul class="pager" style="margin:0px 0px !important;">
+                                	<li class="previous"><a id="quota_group_slide_back">&larr; Back</a></li>
+                                </ul>
+                                <div class="control-group">
+                                    <label class="control-label" for="quota_user_name">群组名</label>
+                                    <div class="controls">
+                                        <input id="quota_group_name" type="text" disabled>
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label class="control-label" for="quota_group_usage">使用量</label>
+                                    <div class="controls">
+                                        <div class="progress progress-striped active span2 myProgress">
+                                            <div class="bar" style="width:0%" id="quota_group_usage"></div>
+                                        </div>
+                                        <span class="progressFont" id="quota_group_usage_str">0%</span>
+                                    </div>
+                                </div>
+                                <div class="control-group" id="quota_group_quota_controls">
+                                    <label class="control-label" for="quota_group_quota">群组配额</label>
+                                    <div class="controls">
+                                        <div class="input-append">
+                                            <input type="text" id="quota_group_quota" style="width:175px">
+                                            <span class="add-on">GB</span>
+                                        </div>
+                                        <span class="help-inline">配额必须为0~10000的整数</span>
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <div class="controls">
+                                        <button type="button" id="quota_group_submit" class="btn" disabled>确定</button>
+                                        <button type="button" id="quota_group_cancel" class="btn">取消</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                     </div>
+               	 </div>
+            </div>
+        </div>
+        <!--Quota manage end-->
+        
+        <!--Group manage start-->
+        <div id="group_manage" class="panel-style" style="display:none">
+        	<div class="printDiv form-horizontal container-fluid">
+            	<div class="row-fluid manage_bar">
+                	<div class="pull-left">
+                    	<img src="../static/img/group_manage.jpg" class="img-rounded">群组管理
+                    </div>
+                	<div class="pull-right">
+                    	<div class="btn-group">
+                            <button class="btn btn-small" id="group_delete_manage" value="0">删除</button>
+                            <button class="btn btn-small" id="group_edit_manage" value="0">编辑</button>
+                            <button class="btn btn-small" id="group_user_edit_manage" value="0" style="display:none;">编辑</button>
+                            <button class="btn btn-small" id="group_user_add" style="display:none;" data-toggle="modal">创建用户</button>
+                            <button class="btn btn-small" id="group_cancel_manage" value="0">取消</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="showDiv form-horizontal container-fluid">
+            	<div class="row-fluid divSlide" id="group_slide">
+                	<div class="eachSlice firstSlice">
+                    	<div class="row-fluid">
+                            <div class="pull-left form-search">
+                                <div class="input-append">
+                                    <input type="text" class="span8 search-query" placeholder="请输入群组名" id="group_search_name"  onKeyDown="keyDown('group_search')">
+                                    <button type="button" class="btn" id="group_search_submit">搜索</button>
+                                </div>
+                            </div>
+                            <div id="group_error_prompt" style="display:none">
+                                <div class="alert alert-error span7">
+                                    <button type="button" class="close" id="group_alert_close">×</button>
+                                    <strong>错误!! </strong>描述与标签不能包含下列字符：\ \ / : * ? " < > |
+                                </div>
+                            </div>
+                            <div id="group_success_prompt" style="display:none">
+                                <div class="alert alert-success span7">
+                                    <button type="button" class="close" id="group_success_close">×</button>
+                                    <strong>恭喜!! </strong>数据更新成功!!
+                                </div>
+                            </div>
+                            <!--<div class="pull-right">
+                                <select id="" class="mySelect" disabled>
+                                    <option>--选择群组类型--</option>
+                                    <option>公共群组</option>
+                                    <option>私有群组</option>
+                                </select>
+                            </div>-->
+                        </div>
+                        <div>
+                            <table class="table table-bordered table-striped manage_table" id="group_table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th><input type="checkbox" id="group_check_manage"></th>
+                                        <th>群组名</th>
+                                        <th>描述</th>
+                                        <th>标签</th>
+                                        <th>类型</th>
+                                        <th>搜索</th>
+                                        <th>创建时间</th>
+                                        <th>状态</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                            <div class="pagination pagination-centered">
+                                <ul>
+                                    <li><a id="group_page_first">first</a></li>
+                                    <li><a id="group_page_left">&laquo;</a></li>
+                                    <li><a id="group_page_label">----------</a></li>
+                                    <li><a id="group_page_right">&raquo;</a></li>
+                                    <li><a id="group_page_last">Last</a></li>
+                        		</ul>
+                       			<input type="hidden" value="1" id="group_page_current_number">
+                        		<input type="hidden" value="1" id="group_page_total_number">
+                                <input type="hidden" value="0" id="group_page_select_flag">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="eachSlice">
+                    	<div class="row-fluid">
+                            <div class="pull-left form-search">
+                                <div class="btn-group">
+                                	<button class="btn btn-link" type="button" id="slide_back">&larr; Back</button>
+                                </div>
+                                <div class="input-append">
+                                	<input type="text" class="span8 search-query" placeholder="请输入用户名" id="group_user_search_name" onKeyDown="keyDown('group_user_search')">
+                                    <button type="button" class="btn" id="group_user_search_submit">搜索</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <table class="table table-bordered table-striped manage_table" id="group_user_table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th><input type="checkbox" id="group_user_check_manage"></th>
+                                        <th>用户名</th>
+                                        <th>昵称</th>
+                                        <th>邮箱</th>
+                                        <th>角色</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                            <div class="pagination pagination-centered">
+                                <ul>
+                                    <li><a id="group_user_page_first">first</a></li>
+                                    <li><a id="group_user_page_left">&laquo;</a></li>
+                                    <li><a id="group_user_page_label">----------</a></li>
+                                    <li><a id="group_user_page_right">&raquo;</a></li>
+                                    <li><a id="group_user_page_last">Last</a></li>
+                        		</ul>
+                       			<input type="hidden" value="1" id="group_user_page_current_number">
+                        		<input type="hidden" value="1" id="group_user_page_total_number">
+                                <input type="hidden" value="" id="current_group_id">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!--Group manage end-->
+        
+        <!--Data manage start-->
+        <div id="data_manage" class="panel-style" style="display:none;">
+        	<div class="printDiv form-horizontal container-fluid">
+            	<div class="row-fluid manage_bar">
+                	<div class="pull-left">
+                    	<img src="../static/img/data_manage.jpg" class="img-rounded">导入导出
+                    </div>
+                    <div class="pull-right">
+                    	<div class="btn-group">
+                        	<button class="btn btn-small" id="data_import">导入</button>
+                            <button class="btn btn-small" id="data_export">导出</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="showDiv form-horizontal container-fluid">
+            	<div class="row-fluid divSlide" id="data_slide">
+                	<div class="eachSlice firstSlice">
+                    	<div class="row-fluid">
+                        	<div class="pull-left">
+                            	<div class="input-prepend input-append">
+                                	<div class="btn-group">
+                                    	<button class="btn dropdown-toggle" data-toggle="dropdown" id="" tableindex="-1">
+                                    		模板下载<span class="caret"></span>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a id="import_user_down">用户模板</a></li>
+                                            <li><a id="import_group_down">群组模板</a></li>
+                                        </ul>
+                                        </div>
+                                	<input type="hidden" name="MAX_FILE_SIZE">
+                                	<input type="text" class="span7" id="data_import_text" placeholder="选择上传文件">
+                                    <input type="file" id="data_file_search" style="display:none;" value="">
+                                    <div class="btn-group">
+                                        <button class="btn dropdown-toggle" data-toggle="dropdown" tabindex="-1">
+                                        	导入选项<span class="caret"></span>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                        	<li><a id="import_user">导入用户</a></li>
+                                            <li><a id="import_group">导入群组</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="import_result_label" class="load-label">
+                            	<button type="button" class="close" id="import_result_close">×</button>
+                                <strong>导入统计!!&nbsp;&nbsp;</strong>
+                                总共:&nbsp;<span class="load-label-total"></span>
+                                成功:&nbsp;<span class="load-label-success"></span>
+                                失败:&nbsp;<span class="load-label-error"></span> 
+                            </div>
+                            <div class="pull-right">
+                            	<div class="btn-group">
+                                    <button class="btn btn-small" id="import_execution" value="0">执行</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="up-down-bar" id="">
+                        	<div class="progress progress-striped active span9 upProgress">
+                            	<div class="bar" style="width:0%" id="import_progress"></div>
+                            </div>
+                            <span class="progressFont" id="import_rate">0%</span>
+                            <span class="progressFont" id="import_statistic">已经导入<strong>0</strong>/0</span>
+                        </div>
+                        <div>
+                        	<table class="table table-bordered table-striped manage_table" id="data_import_table">
+                            	<thead>
+                                	<tr></tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="eachSlice">
+                    	<div class="row-fluid">
+                        	<div class="pull-left">
+                            	<div class="input-append">
+                                	<input type="text" class="span8" id="data_export_text" placeholder="请输入文件名">
+                                    <span class="add-on">.txt</span>
+                                    <div class="btn-group">
+                                        <button class="btn dropdown-toggle" data-toggle="dropdown" tabindex="-1">
+                                        	导出选项<span class="caret"></span>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                        	<li><a id="export_user">导出用户</a></li>
+                                            <li><a id="export_group">导出群组</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="export_result_label" class="load-label">
+                            	<button type="button" class="close" id="">×</button>
+                                <strong>导出完成!!&nbsp;&nbsp;</strong>
+                                总共:&nbsp;<span class="load-label-total"></span>
+                                成功:&nbsp;<span class="load-label-success"></span>
+                                失败:&nbsp;<span class="load-label-error"></span> 
+                            </div>
+                            <div class="pull-right">
+                                <div class="btn-group">
+                                    <button class="btn btn-small" id="export_execution" value="0">执行</button>
+                                </div>
+                            </div>
+                        </div>
+						<div class="up-down-bar" id="">
+                        	<div class="progress progress-striped active span9 upProgress">
+                            	<div class="bar" style="width:0%" id="export_progress"></div>
+                            </div>
+                            <span class="progressFont" id="export_rate">0%</span>
+                            <span class="progressFont" id="export_statistic">已经导出<strong>0</strong>/0</span>
+                            <input type="hidden" value="0" id="export_data_total">
+                        </div>
+                        <div>
+                        	<table class="table table-bordered table-striped manage_table" id="data_export_table">
+                            	<thead>
+                                	<tr></tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!--Data manage end-->
+        
+        <!--Info manage start-->
+        <div id="info_manage" class="panel-style" style="display:none;">
+        	<div class="printDiv form-horizontal container-fluid">
+            	<div class="row-fluid manage_bar">
+                	<div class="pull-left">
+                    	<img src="../static/img/info_statictics.jpg" class="img-rounded">信息统计
+                    </div>
+                </div>
+            </div>
+            <div class="showDiv form-horizontal container-fluid">
+            	<div class="row-fluid">
+                	<div class="alert alert-success span12" style="position:relative;">
+                    	<div class="alert-text"><strong>用户数量:&nbsp;</strong><span class="userNum">-------</span></div>
+                        <div class="alert-text"><strong>群组数量:&nbsp;</strong><span class="groupNum">------</span></div>
+                        <div class="alert-text alert-progress">
+                        	<strong class="usage" style="float:left">使用量:&nbsp;</strong>
+                            <div class="progress progress-success" style="margin-bottom:0px;width:200px;">
+                            	<div class="bar" style="width:40%"></div>
+                            </div>
+                            <p class="percent" style="width: 140px;">-----</p>
+                        </div>
+                        <div class="alert-text"><strong>文件数量:&nbsp;</strong><span class="fileNum">------</span></div>
+                        <div><strong>登录设备数:&nbsp;</strong><span class="onlineNum">----</span></div>
+                    </div>
+                </div>
+                <div class="row-fluid" style="position:relative;">
+                	<div class="chart" id="file_type_chart"></div>
+                    <div class="chart chart-right" id="group_user_chart"></div>
+                    <div class="chart" id="group_file_chart"></div>
+                    <div class="chart chart-right" id="group_usage_chart"></div>
+                </div>
+                <div class="row-fluid">
+                	<div class="chart-bottom" id="user_history_chart"></div>
+                </div>
+                <div class="row-fluid">
+                	<div class="chart-bottom" id="group_history_chart"></div>
+                </div>
+                <div class="row-fluid">
+                	<div class="chart-bottom" id="file_history_chart"></div>
+                </div>
+            </div>
+        </div>
+        <!--Info manage end-->
+        
+        <!--Client manage start-->
+        <div id="client_manage" class="panel-style" style="display:none">
+        	<div class="printDiv form-horizontal container-fluid">
+            	<div class="row-fluid manage_bar">
+                	<div class="pull-left">
+                    	<img src="../static/img/client_manage.png" class="img-rounded">客户端管理
+                    </div>
+                </div>
+            </div>
+            <div class="showDiv form-horizontal container-fluid">
+            	<div class="row-fluid">
+                </div>
+                <div>
+                	<form class="form-horizontal" action="/upload" method="post" enctype="multipart/form-data">
+                    	<div class="control-group">
+                        	<label class="control-label" for="client_os">应用平台</label>
+                            <div class="controls">
+                            	<select class="form-control" id="client_os" name="platform">
+                                	<option>win32</option>
+                                    <option>win64</option>
+                                    <option>linux32</option>
+                                    <option>linux64</option>
+                                    <option>osx</option>
+                                    <option>android</option>
+                                    <option>ios</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                        	<label class="control-label" for="client_version">版本号</label>
+                            <div class="controls">
+                            	<input type="text" id="client_version" name="version">
+                            </div>
+                        </div>
+                        <div class="control-group form-search">
+                        	<label class="control-label" for="client_upload">上传文件</label>
+                            <div class="controls">
+                            	<input type="hidden" name="MAX_FILE_SIZE">
+                            	<div class="input-append">
+                                    <input type="text" id="client_upload" class="search-query" style="width:125px;" placeholder="选择上传文件">
+                                    <button type="button" class="btn" onClick="myfile.click()">浏览...</button>
+                                    <input type="file" name="myfile" value="" style="display:none;" onChange="client_upload.value = this.value">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                        	<div class="controls">
+                        		<button type="submit" class="btn">上传</button>
+                                <button type="reset" class="btn">重置</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <!--Client manage edn-->
+    </div>
+    <!--Container end-->
+    
+    <!--Footer start-->
+    <footer class="footer">
+    	<div class="container-fluid">
+            <p><font color="gray">
+                <a href="http://www.meepotech.com/terms">服务条款</a>&nbsp;&nbsp;&nbsp;
+                <a href="http://www.meepotech.com/">公司首页</a>&nbsp;&nbsp;&nbsp;
+                <a href="http://www.meepotech.com/about">关于我们</a>&nbsp;&nbsp;&nbsp;
+                <a href="mailto:support@meepotech.com">意见反馈</a>
+                <br><br>
+                &copy; 2013 北京麦谱影随科技有限公司
+            </font></p>
+   		</div>
+    </footer>
+    <!--Footer end-->
+    
+    <!--Dialog start-->
+    <div class="modal hide fade in" tabindex="-1" role="dialog" aria-labelledby="myModelLabel" aria-hidden="false" id="group_adduser_modal" style="display:none;">
+    	<div class="modal-header">
+        	<button type="button" class="close" onClick="clearAlternativeBox()">&times;</button>
+        	<h3>添加用户</h3>
+		</div>
+        <div class="modal-body">
+        	<div class="row-fluid">
+            	<div class="pull-left form-search">
+                	<div class="input-append">
+                    	<input type="text" class="span12 search-query" placeholder="请输入用户名" id="group_adduser_search_name">
+                        <button type="button" class="btn" id="group_adduser_search_submit">搜索</button>
+                    </div>
+                </div>
+            </div>
+            <div class="row-fluid">
+            	<div class="span12">
+                	<table class="table table-bordered table-striped manage_table" id="group_adduser_table">
+                    	<thead>
+                        	<tr>
+                            	<th>用户名</th>
+                                <th>昵称</th>
+                                <th>邮箱</th>
+                                <th>注册时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="row-fluid">
+            	<div class="myWell span12" id="group_adduser_result_box">
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+        	<button type="button" class="btn" onClick="clearAlternativeBox()">关闭</a>
+            <button type="button" class="btn btn-primary" id="group_adduser_submit">添加</button>
+		</div>
+	</div>
+    <!--Dialog end-->
+</body>
+</html>
