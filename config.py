@@ -21,3 +21,12 @@ adaptation = {
     'android':  'Android 2.2+',
     'ios':      'iOS 5.0+'
 }
+
+# postgres connect information
+db_config = {
+    'database': 'web',
+    'user': 'postgres',
+    'password': 'postgres',
+    'host': '192.168.200.207',
+    'port': '5432'
+}

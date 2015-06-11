@@ -109,9 +109,14 @@ $(function(){
 	$('#export_execution').click(exportExecution);
 
     //Notice
-    $('#notice_edit_manage').click(noticeEditManage);
     $('#notice_create_manage').click(noticeCreateManage);
+    $('#notice_delete_manage').click(noticeDeleteManage);
     $('#notice_slide_back').click(noticeSlideBack);
+    $('#notice_editor_save').click(noticeEditorSave);
+    $('#notice_editor_submit').click(noticeEditorSubmit);
+    $('#notice_update_save').click(noticeUpdateSave);
+    $('#notice_update_submit').click(noticeUpdateSubmit);
+    $('#notice_editor_cancel').click(noticeEditorCancel);
 	//Initialization
 	initEnvironment();
 	
@@ -219,6 +224,8 @@ function infoManage(){
 
 function noticeManage(){
     switchItem('notice');
+    noticeList();
+    initNoticeEditor();
 }
 
 function clientManage(){
@@ -2688,11 +2695,29 @@ function genPieOptions(title,data){
 
 
 //Notice manage
-function noticeEditManage(){
+function noticeCreateManage(){
+    $('.notice-new').show();
+    $('.notice-old').hide();
+    noticeSlideForward();
 }
 
-function noticeCreateManage(){
-    noticeSlideForward();
+function noticeDeleteManage(){
+    var $checkedList = $('#notice_table >tbody input:checkbox:checked');
+    if($checkedList.length > 0){
+        var ids = {};
+        $checkedList.each(function(index, element){
+            var pos = element.name;
+            ids[index] = $('#notice_table > tbody tr:eq('+pos+') td:eq(1) input[type="checkbox"]').val();
+        });
+        ids['count'] = $checkedList.length;
+        //Delete notice
+        var completeUrl = url_templates.notice_list;
+        $.post(completeUrl,ids,function(data,status){
+            if(status == 'success'){     
+                noticeList();
+            }
+        });
+    }
 }
 
 function noticeSlideForward(){
@@ -2703,7 +2728,152 @@ function noticeSlideForward(){
 function noticeSlideBack(){
     $('#notice_slide').animate({marginLeft:'0px'},500);
     $('#notice_manage .tools').show();
+
+    //Clean title and content
+    $('#noticeTitle').val('');
+    $('#editor').html('');
 }
+
+
+//Notice editor
+function initNoticeEditor(){
+    initToolbarBootstrapBindings();
+    $('#editor').wysiwyg({fileUploadError: showErrorAlert});
+    window.prettyPrint && prettyPrint();
+}
+
+function initToolbarBootstrapBindings() {
+    var fonts = ['Serif', 'Sans', 'Arial', 'Arial Black', 'Courier', 'Courier New', 'Comic Sans MS',
+                 'Helvetica', 'Impact', 'Lucida Grande', 'Lucida Sans', 'Tahoma', 'Times', 'Times New Roman', 'Verdana'];
+    var fontTarget = $('[title=Font]').siblings('.dropdown-menu');
+    
+    $.each(fonts, function (idx, fontName) {
+        fontTarget.append($('<li><a data-edit="fontName ' + fontName +'" style="font-family:\''+ fontName +'\'">'+fontName + '</a></li>'));
+    });
+    $('a[title]').tooltip({container:'body'});
+    $('.dropdown-menu input').click(function() {return false;})
+                             .change(function () {$(this).parent('.dropdown-menu')
+                             .siblings('.dropdown-toggle').dropdown('toggle');})
+                             .keydown('esc', function () {this.value='';$(this).change();});
+    $('[data-role=magic-overlay]').each(function () { 
+        var overlay = $(this), target = $(overlay.data('target')); 
+        overlay.css('opacity', 0).css('position', 'absolute').offset(target.offset()).width(target.outerWidth()).height(target.outerHeight());
+    });
+    if ("onwebkitspeechchange"  in document.createElement("input")) {
+        var editorOffset = $('#editor').offset();
+        $('#voiceBtn').css('position','absolute')
+                      .offset({top: editorOffset.top, left: editorOffset.left+$('#editor').innerWidth()-35});
+    } else {
+        $('#voiceBtn').hide();
+    }
+};
+
+function showErrorAlert (reason, detail) {
+    var msg='';
+    if (reason==='unsupported-file-type') { msg = "Unsupported format " +detail; }
+    else {
+        console.log("error uploading file", reason, detail);
+    }
+    $('<div class="alert"> <button type="button" class="close" data-dismiss="alert">&times;</button>'+ 
+      '<strong>File upload error</strong> '+msg+' </div>').prependTo('#alerts');
+};
+
+function noticeEditorSave(){
+    noticeEditorExec(0);
+}
+
+function noticeEditorSubmit(){
+    noticeEditorExec(1);
+}
+
+function noticeEditorExec(type){ 
+    var data = {
+        'title': $('#noticeTitle').val(),
+        'content': $('#editor').html(),
+        'time': (new Date()).toLocaleString(),
+        'type': type
+    };
+    var completeUrl = url_templates.notice_save;
+    $.post(completeUrl,data,function(result,status){
+        if(status == 'success'){
+            alert('操作成功');
+        }
+    });
+}
+
+function noticeUpdateSave(){
+    noticeUpdateExec(0);
+}
+
+function noticeUpdateSubmit(){
+    noticeUpdateExec(1);
+}
+
+function noticeUpdateExec(type){
+    var data = {
+        'title': $('#noticeTitle').val(),
+        'content': $('#editor').html(),
+        'time': (new Date()).toLocaleString(),
+        'type': type
+    };
+    var completeUrl = String.format(url_templates.notice_detail,$('#noticeID').val());
+
+    $.post(completeUrl,data,function(result,status){
+        if(status == 'success'){
+            alert('操作成功');
+        }
+    });
+}
+
+function noticeEditorCancel(){
+    noticeSlideBack();
+}
+
+function noticeList(){
+    clearTable('notice_table');
+    var completeUrl = url_templates.notice_list;
+    $.get(completeUrl,function(data,status){
+        if(status=="success"){
+            var dataVal = [];
+            for(var index = 0 ; index < data.length ; index++){
+                dataVal[index] = []
+                dataVal[index][0] = index + 1;
+                dataVal[index][1] = '<input type="checkbox" value="'+data[index]['id']+'" name="'+index+'">';
+                dataVal[index][2] = '<a onClick="noticeDetail(\''+data[index]['id']+'\')">'+stringThumbnail(data[index]['title'])+'</a>';
+                dataVal[index][3] = data[index]['time'];
+                dataVal[index][4] = parseInt(data[index]['type']) == 0 ? '未发表' : '已发表';
+            }
+
+            createTable('notice_table',dataVal);
+        }
+    },'json');
+}
+
+function noticeDetail(id){
+    var completeUrl = String.format(url_templates.notice_detail,id);
+    $('.notice-old').show();
+    $('.notice-new').hide();
+    noticeSlideForward();
+    $.get(completeUrl,function(data,status){
+        if(status == "success"){
+            $('#noticeID').val(id);
+            $('#noticeTitle').val(data['title']);
+            $('#editor').html(data['content']);
+        }
+    },'json');
+}
+
+function htmlencode(s){  
+    var div = document.createElement('div');  
+        div.appendChild(document.createTextNode(s));  
+    return div.innerHTML.toString();
+}
+
+function htmldecode(s){  
+    var div = document.createElement('div');  
+        div.innerHTML = s;  
+    return div.innerText || div.textContent;  
+} 
 
 //key down
 function keyDown(name){

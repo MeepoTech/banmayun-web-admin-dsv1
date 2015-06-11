@@ -65,7 +65,12 @@ var url_templates = {
 	summary:			 servers.statistics + '/summary?time={0}&token={1}',
 	top:				 servers.statistics + '/top?limit={0}&token={1}',
 	trend:				 servers.statistics + '/trend?token={0}',
-	spaceUsage:			 '/stats'
+	spaceUsage:			 '/stats',
+
+    //notice
+    notice_save:         '/notice/save',
+    notice_list:         '/notice/list',
+    notice_detail:       '/notice/{0}',
 };
 
 var user_role = {
