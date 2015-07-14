@@ -69,8 +69,15 @@ var url_templates = {
 
     //notice
     notice_save:         '/notice/save',
-    notice_list:         '/notice/list',
+    notice_list:         '/notice/list?offset={0}&count={1}',
+    notice_del:          '/notice/del',
     notice_detail:       '/notice/{0}',
+
+    //client
+    client_upload:       '/client',
+    client_list:         '/client',
+    client_del:          '/client/del',
+    client_update:       '/client/update'
 };
 
 var user_role = {

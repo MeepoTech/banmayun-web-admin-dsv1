@@ -25,8 +25,8 @@ class DBConn:
         self.cur.execute(sql,args)
         self.conn.commit()
 
-    def select(self,sql):
-        self.cur.execute(sql)
+    def select(self,sql,args):
+        self.cur.execute(sql,args)
         rows = self.cur.fetchall()
         return rows
     

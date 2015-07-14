@@ -281,6 +281,19 @@ div[data-role="editor-toolbar"] {
     text-align: center
 }
 
+#notice_image{
+    position: absolute;
+    width: 270px;
+    height: 210px;
+    right: 30px;
+    top: 30px
+}
+
+#notice_image img{
+    width: 210px;
+    height: 210px;
+    cursor: pointer
+}
 /*Notice manage style end*/
 
 /*Dialog style start*/
@@ -335,4 +348,18 @@ button.myClose{
   min-width:1170px;
 }
 /*Dialog style end*/
+
+/*Client upload style start*/
+#upload-progress .progress{
+    width: 180px;
+    margin-top: 4px;
+    margin-bottom: 0px;
+    float: left
+}
+#upload-progress .text{
+    margin-top: 3px;
+    float: left;
+    margin-left: 10px
+}
+/*Client upload style end*/
 

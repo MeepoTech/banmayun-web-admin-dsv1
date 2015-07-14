@@ -1,7 +1,7 @@
 # this is the config file
 
 # location to store uploaded client packages
-upload_dir = '/var/www/campus-website/upload/'
+upload_dir = '/var/www/new-website/upload/'
 qr_path = '/var/www/campus-website/upload/qr_android.png'
 download_root_url = 'http://test.meepotech.com/upload/'
 # domain or IP which the redis sever run on

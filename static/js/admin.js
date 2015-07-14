@@ -117,6 +117,15 @@ $(function(){
     $('#notice_update_save').click(noticeUpdateSave);
     $('#notice_update_submit').click(noticeUpdateSubmit);
     $('#notice_editor_cancel').click(noticeEditorCancel);
+    $('#notice_page_first').click(noticePageFirst);
+    $('#notice_page_left').click(noticePageLeft);
+    $('#notice_page_right').click(noticePageRight);
+    $('#notice_page_last').click(noticePageLast);
+
+    //Client
+    $('#client_add_manage').click(clientAddManage);
+    $('#client_delete_manage').click(clientDeleteManage);
+
 	//Initialization
 	initEnvironment();
 	
@@ -224,12 +233,13 @@ function infoManage(){
 
 function noticeManage(){
     switchItem('notice');
-    noticeList();
+    listNotice();
     initNoticeEditor();
 }
 
 function clientManage(){
 	switchItem('client');
+    listClients();
 }
 
 function resetPasswordSubmit(){
@@ -2711,10 +2721,10 @@ function noticeDeleteManage(){
         });
         ids['count'] = $checkedList.length;
         //Delete notice
-        var completeUrl = url_templates.notice_list;
+        var completeUrl = url_templates.notice_del;
         $.post(completeUrl,ids,function(data,status){
             if(status == 'success'){     
-                noticeList();
+                listNotice();
             }
         });
     }
@@ -2729,6 +2739,7 @@ function noticeSlideBack(){
     $('#notice_slide').animate({marginLeft:'0px'},500);
     $('#notice_manage .tools').show();
 
+    listNotice();
     //Clean title and content
     $('#noticeTitle').val('');
     $('#editor').html('');
@@ -2766,6 +2777,19 @@ function initToolbarBootstrapBindings() {
     } else {
         $('#voiceBtn').hide();
     }
+
+    //init image preview
+    $('#notice_image_preview').off('click');
+    $('#notice_image_preview').on('click',function(e){
+        $('#notice_image input').click();
+    });
+    $('#notice_image input').change(function(e){
+        var reader = new FileReader();
+        reader.onload = function(data){
+            $('#notice_image_preview').attr('src',data.target.result);
+        }
+        reader.readAsDataURL(e.target.files[0]);
+    });
 };
 
 function showErrorAlert (reason, detail) {
@@ -2791,12 +2815,16 @@ function noticeEditorExec(type){
         'title': $('#noticeTitle').val(),
         'content': $('#editor').html(),
         'time': (new Date()).toLocaleString(),
-        'type': type
+        'type': type,
+        'summary': $('#noticeSummary').val(),
+        'cover': $('#notice_image_preview').attr('src')
     };
     var completeUrl = url_templates.notice_save;
     $.post(completeUrl,data,function(result,status){
         if(status == 'success'){
             alert('操作成功');
+            if(type == 1)
+                noticeSlideBack();
         }
     });
 }
@@ -2814,13 +2842,17 @@ function noticeUpdateExec(type){
         'title': $('#noticeTitle').val(),
         'content': $('#editor').html(),
         'time': (new Date()).toLocaleString(),
-        'type': type
+        'type': type,
+        'summary': $('#noticeSummary').val(),
+        'cover': $('#notice_image_preview').attr('src')
     };
     var completeUrl = String.format(url_templates.notice_detail,$('#noticeID').val());
 
     $.post(completeUrl,data,function(result,status){
         if(status == 'success'){
             alert('操作成功');
+            if(type == 1)
+                noticeSlideBack();
         }
     });
 }
@@ -2829,19 +2861,28 @@ function noticeEditorCancel(){
     noticeSlideBack();
 }
 
-function noticeList(){
+function listNotice(){
     clearTable('notice_table');
-    var completeUrl = url_templates.notice_list;
+    var currentPageNumber = parseInt($('#notice_page_current_number').val());
+    var offset = (currentPageNumber - 1)*pageSize;
+
+    var completeUrl = String.format(url_templates.notice_list,offset,pageSize);
     $.get(completeUrl,function(data,status){
         if(status=="success"){
+            if(currentPageNumber == 1){
+                //Create page number
+                var totalPageNumber = calcPageTotalCount(data.total,pageSize);
+                $('#notice_page_total_number').val(totalPageNumber);
+                $('#notice_page_label').text('Page 1 of '+totalPageNumber);
+            }
             var dataVal = [];
-            for(var index = 0 ; index < data.length ; index++){
+            for(var index = 0 ; index < data.count ; index++){
                 dataVal[index] = []
                 dataVal[index][0] = index + 1;
-                dataVal[index][1] = '<input type="checkbox" value="'+data[index]['id']+'" name="'+index+'">';
-                dataVal[index][2] = '<a onClick="noticeDetail(\''+data[index]['id']+'\')">'+stringThumbnail(data[index]['title'])+'</a>';
-                dataVal[index][3] = data[index]['time'];
-                dataVal[index][4] = parseInt(data[index]['type']) == 0 ? '未发表' : '已发表';
+                dataVal[index][1] = '<input type="checkbox" value="'+data.notice[index]['id']+'" name="'+index+'">';
+                dataVal[index][2] = '<a onClick="noticeDetail(\''+data.notice[index]['id']+'\')">'+stringThumbnail(data.notice[index]['title'])+'</a>';
+                dataVal[index][3] = data.notice[index]['time'];
+                dataVal[index][4] = parseInt(data.notice[index]['type']) == 0 ? '未发表' : '已发表';
             }
 
             createTable('notice_table',dataVal);
@@ -2856,9 +2897,12 @@ function noticeDetail(id){
     noticeSlideForward();
     $.get(completeUrl,function(data,status){
         if(status == "success"){
+            $('#notice_image img').attr('src','');
             $('#noticeID').val(id);
             $('#noticeTitle').val(data['title']);
             $('#editor').html(data['content']);
+            $('#noticeSummary').val(data['summary']);
+            $('#notice_image_preview').attr('src',data['cover']);
         }
     },'json');
 }
@@ -2874,6 +2918,179 @@ function htmldecode(s){
         div.innerHTML = s;  
     return div.innerText || div.textContent;  
 } 
+
+//Notice page switch
+function noticePageFirst(){
+    if(pageFirst('notice')){
+        var val = $('#notice_page_select_flag').val();
+        if(val == 0){
+            listNotice();
+        }
+        else{
+        }
+    }
+}
+
+function noticePageRight(){
+	if(pageRight('notice')){
+		var val = $('#notice_page_select_flag').val();
+		if(val == 0){
+			listNotice();
+		}
+		else{
+		}
+	}
+}
+
+function noticePageLeft(){
+	if(pageLeft('notice')){
+		var val = $('#notice_page_select_flag').val();
+		if(val == 0){
+			listNotice();
+		}
+		else{
+		}
+	}
+}
+
+function noticePageLast(){
+	if(pageLast('notice')){
+		var val = $('#notice_page_select_flag').val();
+		if(val == 0){
+			listNotice();
+		}
+		else{
+		}
+	}
+}
+
+//Client
+function clientAddManage(){
+    $('#client_upload_modal').modal('show');
+    $('#client_upload_modal .modal-header .close').off();
+    $('#client_upload_modal .modal-header .close').on('click',function(){
+        clearEnv();
+    });
+
+    function clearEnv(){
+        $('#client_upload_modal').modal('hide');
+        $('#upload-progress').find('.bar').css('width','0px');
+        $('#upload-progress').find('.text').text('0%');
+        $('#client_upload_modal form').get(0).reset();
+        listClients();
+    }
+
+    $('#client_upload_file').fileupload({
+        sequentialUploads: true,
+        add: function(e, data){
+            data.url = String.format(url_templates.client_upload);
+            var jqXHR;
+            $('#client_upload_submit').on('click',function(ev){
+                $('#client_time').val((new Date()).toLocaleString()); 
+                jqXHR = data.submit();
+                $('#client_upload_submit').off('click');
+            });
+            $('#client_upload_cancel').on('click',function(ev){
+                jqXHR.abort();
+                $('#client_upload_cancel').off();
+                clearEnv();
+            });
+            //reset environment
+            $('#upload-progress').find('.bar').css('width', '0%');
+            $('#upload-progress').find('.text').text('0%');
+        },
+        progress: function(e, data){
+            var progress = parseInt(data.loaded / data.total * 100, 10);
+            $('#upload-progress').find('.bar').css('width', progress + '%');
+            $('#upload-progress').find('.text').text(progress + '%');
+        },
+        done: function(e, data)
+        {
+            alert('上传成功！');
+        }
+    });
+}
+
+function listClients(){
+    clearTable('client_table');
+    var completeUrl = String.format(url_templates.client_list);
+    $.get(completeUrl,function(data,status){
+        if(status == 'success'){
+            var dataVal = [];
+            for(var index = 0 ; index < data.count ; index++){
+                dataVal[index] = []
+                dataVal[index][0] = index + 1;
+                dataVal[index][1] = '<input type="checkbox" value="'+data.client[index]['id']+'" name="'+index+'">';
+                dataVal[index][2] = stringThumbnail(data.client[index]['name']);
+                dataVal[index][3] = data.client[index]['platform'];
+                dataVal[index][4] = data.client[index]['version'];
+                dataVal[index][5] = data.client[index]['time'];
+                if(parseInt(data.client[index]['status']) == 0)
+                    dataVal[index][6] = '<a style="color:#ff0000" onClick="changeClientState(\'1\',this)">未发布</a>';
+                else
+                    dataVal[index][6] = '<a style="color:#0088cc" onClick="changeClientState(\'0\',this)">已发布</a>';
+                dataVal[index][7] = data.client[index]['dlcount'];
+            }
+
+            createTable('client_table',dataVal);
+        }
+    },'json');
+}
+
+function changeClientState(changeToState,currentTR){
+	var tr = currentTR.parentNode.parentNode;
+	var clientID = tr.cells[1].firstChild.value;
+	
+	function after_update(data,status){
+		if(status == 'error'){
+		}
+		else{
+			if(changeToState == 0){
+				tr.cells[6].innerHTML = '<a style="color:#ff0000" onClick="changeClientState(\'1\',this)">未发布</a>';
+			}
+			else{
+				tr.cells[6].innerHTML = '<a style="color:#0088cc" onClick="changeClientState(\'0\',this)">已发布</a>';
+			}
+		}
+	}
+	
+	var form = {};
+    form["id"] = clientID;
+    form["status"] = changeToState;
+	
+	var completeUrl = String.format(url_templates.client_update);
+    $.post(completeUrl,form,after_update);
+}
+
+function groupEditManage(){
+	var val = $('#group_edit_manage').val();
+	if(val == 0){
+		groupEdit();
+	}
+	else{
+		groupSave();
+	}
+}
+
+
+function clientDeleteManage(){
+    var $checkedList = $('#client_table >tbody input:checkbox:checked');
+    if($checkedList.length > 0){
+        var ids = {};
+        $checkedList.each(function(index, element){
+            var pos = element.name;
+            ids[index] = $('#client_table > tbody tr:eq('+pos+') td:eq(1) input[type="checkbox"]').val();
+        });
+        ids['count'] = $checkedList.length;
+        //Delete notice
+        var completeUrl = url_templates.client_del;
+        $.post(completeUrl,ids,function(data,status){
+            if(status == 'success'){     
+                listClients();
+            }
+        });
+    }
+}
 
 //key down
 function keyDown(name){

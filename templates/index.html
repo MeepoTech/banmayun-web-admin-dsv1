@@ -13,6 +13,10 @@
     <link href="../static/css/admin.css" rel="stylesheet" type="text/css" />
 	
     <script src="../static/js/jquery.min.js" type="text/javascript"></script>
+    <!-- JQuery fileupload Dependencies -->
+    <script src="../static/js/jquery.ui.widget.js" type="text/javascript"></script>
+    <script src="../static/js/jquery.iframe-transport.js" type="text/javascript"></script>
+    <script src="../static/js/jquery.fileupload.js" type="text/javascript"></script>
     <script src="../static/js/bootstrap.min.js" type="text/javascript"></script>
     <script src="../static/js/bootstrap-tooltip.js" type="text/javascript"></script>
     <script src="../static/js/popbox.js" type="text/javascript"></script>
@@ -720,7 +724,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="eachSlice">
+                    <div class="eachSlice" style="position:relative">
                         <div class="row-fluid">
                             <div class="pull-left form-search">
                                 <div class="btn-group">
@@ -730,8 +734,19 @@
                         </div>
                         <div class="row-fluid">
                             <span>标题：</span>
-                            <input class="span6" type="text" id="noticeTitle" placeholder="请输入标题...">
+                            <input class="span8" type="text" id="noticeTitle" placeholder="请输入标题...">
                             <input type="hidden" value="0" id="noticeID">
+                        </div>
+                        <div class="row-fluid" style="margin-top:10px">
+                            <span>概述：</span>
+                            <textarea rows="8" class="span8" id="noticeSummary"></textarea>
+                        </div>
+                        <div id="notice_image">
+                            <div class="row-fluid">
+                                <span>封面：</span>
+                                <img id="notice_image_preview" src="" title="请点击更换封面"/>
+                                <input type="file" style="display:none" name="image"/>
+                            </div>
                         </div>
                         <div class="row-fluid">
                             <div class="btn-toolbar" data-role="editor-toolbar" data-target="#editor">
@@ -816,51 +831,40 @@
                 	<div class="pull-left">
                     	<img src="../static/img/client_manage.png" class="img-rounded">客户端管理
                     </div>
+                    <div class="pull-right">
+                        <div class="btn-group tools" style="display: inline-block;">
+                            <button class="btn btn-small" id="client_delete_manage">删除</button>
+                            <button class="btn btn-small" id="client_add_manage">添加</button>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="showDiv form-horizontal container-fluid">
-            	<div class="row-fluid">
+                <div class="row-fluid">
+                    <div class="pull-left form-search">
+                        <div class="input-append">
+                            <input type="text" class="span8 search-query" placeholder="请输入文件名" id="client_search_name" onkeydown="">
+                            <button type="button" class="btn" id="client_search_submit">搜索</button>
+                        </div>
+                    </div>
                 </div>
                 <div>
-                	<form class="form-horizontal" action="/upload" method="post" enctype="multipart/form-data">
-                    	<div class="control-group">
-                        	<label class="control-label" for="client_os">应用平台</label>
-                            <div class="controls">
-                            	<select class="form-control" id="client_os" name="platform">
-                                	<option>win32</option>
-                                    <option>win64</option>
-                                    <option>linux32</option>
-                                    <option>linux64</option>
-                                    <option>osx</option>
-                                    <option>android</option>
-                                    <option>ios</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="control-group">
-                        	<label class="control-label" for="client_version">版本号</label>
-                            <div class="controls">
-                            	<input type="text" id="client_version" name="version">
-                            </div>
-                        </div>
-                        <div class="control-group form-search">
-                        	<label class="control-label" for="client_upload">上传文件</label>
-                            <div class="controls">
-                            	<input type="hidden" name="MAX_FILE_SIZE">
-                            	<div class="input-append">
-                                    <input type="text" id="client_upload" class="search-query" style="width:125px;" placeholder="选择上传文件">
-                                    <button type="button" class="btn" onClick="myfile.click()">浏览...</button>
-                                    <input type="file" name="myfile" value="" style="display:none;" onChange="client_upload.value = this.value">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="control-group">
-                        	<div class="controls">
-                        		<button type="submit" class="btn">上传</button>
-                                <button type="reset" class="btn">重置</button>
-                            </div>
-                        </div>
-                    </form>
+                    <table class="table table-bordered table-striped manage_table" id="client_table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th><input type="checkbox" id="client_check_manage"></th>
+                                <th>文件名</th>
+                                <th>平台</th>
+                                <th>版本</th>
+                                <th>上传时间</th>
+                                <th>发布状态</th>
+                                <th>下载次数</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -923,6 +927,62 @@
         <div class="modal-footer">
         	<button type="button" class="btn" onClick="clearAlternativeBox()">关闭</a>
             <button type="button" class="btn btn-primary" id="group_adduser_submit">添加</button>
+		</div>
+	</div>
+
+    <div class="modal hide fade in" tabindex="-1" role="dialog" aria-labelledby="myModelLabel" aria-hidden="false" id="client_upload_modal" style="display:none;">
+    	<div class="modal-header">
+        	<button type="button" class="close" onclick="">&times;</button>
+        	<h3>添加客户端</h3>
+		</div>
+        <div class="modal-body">
+            <form class="form-horizontal" action="/upload" method="post" enctype="multipart/form-data">
+                <div class="control-group">
+                    <label class="control-label" for="client_os">应用平台</label>
+                    <div class="controls">
+                        <select class="form-control" id="client_os" name="platform">
+                            <option>win32</option>
+                            <option>win64</option>
+                            <option>linux32</option>
+                            <option>linux64</option>
+                            <option>osx</option>
+                            <option>android</option>
+                            <option>ios</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label class="control-label" for="client_version">版本号</label>
+                    <div class="controls">
+                        <input type="text" id="client_version" name="version">
+                        <input type="hidden" id="client_time" name="time">
+                    </div>
+                </div>
+                <div class="control-group form-search">
+                    <label class="control-label" for="client_upload">上传文件</label>
+                    <div class="controls">
+                        <input type="hidden" name="MAX_FILE_SIZE">
+                        <div class="input-append">
+                            <input type="text" id="client_upload" class="search-query" style="width:125px;" placeholder="选择上传文件">
+                            <button type="button" class="btn" onClick="myfile.click()">浏览...</button>
+                            <input type="file" id="client_upload_file" name="myfile" value="" style="display:none;" onChange="client_upload.value = this.value">
+                        </div>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label class="control-label" for="upload-progress">上传进度</label>
+                    <div class="controls" id="upload-progress">
+                        <div class="progress progress-striped active">
+                            <div class="bar" style="width: 0%;"></div>
+                        </div>
+                        <span class="text">0%</span>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+        	<button type="button" class="btn btn-primary" id="client_upload_cancel">取消</a>
+            <button type="button" class="btn btn-primary" id="client_upload_submit">上传</button>
 		</div>
 	</div>
     <!--Dialog end-->
