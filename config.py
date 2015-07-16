@@ -9,7 +9,7 @@ download_root_url = 'http://test.meepotech.com/upload/'
 
 # platforms that we support(client)
 platform_list = ['win32', 'win64', 'linux32', 'linux64',
-                 'osx', 'android', 'ios']
+                 'mac', 'android', 'iphone']
 
 # supported os version
 adaptation = {

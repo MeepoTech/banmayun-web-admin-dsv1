@@ -110,6 +110,8 @@ $(function(){
 
     //Notice
     $('#notice_create_manage').click(noticeCreateManage);
+    $('#notice_edit_manage').click(noticeEditManage);
+    $('#notice_cancel_manage').click(noticeCancelManage);
     $('#notice_delete_manage').click(noticeDeleteManage);
     $('#notice_slide_back').click(noticeSlideBack);
     $('#notice_editor_save').click(noticeEditorSave);
@@ -170,6 +172,7 @@ function clean_environment(){
 	//Cancel
 	groupCancel();
 	userCancelManage();
+    noticeCancelManage();
 	
 	//clean page number
 	$('#user_page_select_flag').val(0);
@@ -390,7 +393,7 @@ function listGroup(){
 	}
 	
 	var completeUrl = String.format(url_templates.group_list,offset,pageSize,local_data.token);
-	request(completeUrl,"","get",after_list);
+    request(completeUrl,"","get",after_list);
 }
 
 function listGroupUser(){
@@ -2711,6 +2714,85 @@ function noticeCreateManage(){
     noticeSlideForward();
 }
 
+function noticeEditManage(){
+    var value = $('#notice_edit_manage').val();
+    if(value == 0){
+        noticeListEdit();
+    }
+    else{
+        noticeListSave();
+    }
+}
+function noticeCancelManage(){
+    var $checkedList = $('#notice_table >tbody input:checkbox:checked');
+    if($checkedList.length > 0){
+        $checkedList.each(function(index, element) {
+            var i = element.name;
+            $curEle = $('#notice_table > tbody tr:eq('+i+') td:eq(4)');
+            $curEle.find('select').remove();
+            $curEle.find('.text').show();
+        });
+    }
+    deactivateEdit('notice');
+}
+
+function noticeListEdit(){
+    var $checkedList = $('#notice_table >tbody input:checkbox:checked');
+    if($checkedList.length > 0){
+        $('#notice_edit_manage').val(1);
+        $('#notice_edit_manage').text('保存');
+        $checkedList.each(function(index, element) {
+            var i = element.name;
+            $curEle = $('#notice_table > tbody tr:eq('+i+') td:eq(4)');
+            var pos = $curEle.find('.text').attr('data-pos');
+            $curEle.append(createSettingsSelect(pos));
+            $curEle.find('.text').hide();
+        });
+    }
+    function createSettingsSelect(pos){
+        var htmlStr = '<select class="notice_settings span7">';
+        if(pos == 0){
+            htmlStr += '<option value="0">未置顶</option>';
+            htmlStr += '<option value="1">置顶</option>';
+        }
+        else{
+            htmlStr += '<option value="1">置顶</option>';
+            htmlStr += '<option value="0">未置顶</option>';
+        }
+        htmlStr += '</select>';
+        return htmlStr;
+    }
+}
+
+function noticeListSave(){
+    var $checkedList = $('#notice_table >tbody input:checkbox:checked');
+    if($checkedList.length > 0){
+        $('#notice_edit_manage').val(0);
+        $('#notice_edit_manage').text('编辑');
+        $checkedList.each(function(index, element) {
+            var i = element.name;
+            var id = element.value;
+            $curEle = $('#notice_table > tbody tr:eq('+i+') td:eq(4)');
+            var pos = $curEle.find('select option:selected').val();
+            var text= $curEle.find('select option:selected').text();
+            $curEle.find('select').remove();
+            $curEle.find('.text').attr('data-pos',pos);
+            $curEle.find('.text').text(text);
+            $curEle.find('.text').show();
+
+            var data = {
+                'pos': pos
+            };
+            var completeUrl = String.format(url_templates.notice_detail,id);
+
+            $.post(completeUrl,data,function(result,status){
+                if(status == 'success'){
+                }
+            });
+        });
+    }
+}
+
 function noticeDeleteManage(){
     var $checkedList = $('#notice_table >tbody input:checkbox:checked');
     if($checkedList.length > 0){
@@ -2733,6 +2815,7 @@ function noticeDeleteManage(){
 function noticeSlideForward(){
     $('#notice_slide').animate({marginLeft:'-1158px'},500);
     $('#notice_manage .tools').hide();
+    noticeCancelManage();
 }
 
 function noticeSlideBack(){
@@ -2882,7 +2965,8 @@ function listNotice(){
                 dataVal[index][1] = '<input type="checkbox" value="'+data.notice[index]['id']+'" name="'+index+'">';
                 dataVal[index][2] = '<a onClick="noticeDetail(\''+data.notice[index]['id']+'\')">'+stringThumbnail(data.notice[index]['title'])+'</a>';
                 dataVal[index][3] = data.notice[index]['time'];
-                dataVal[index][4] = parseInt(data.notice[index]['type']) == 0 ? '未发表' : '已发表';
+                dataVal[index][4] = '<span class="text" data-pos="'+data.notice[index]['pos']+'">'+ (parseInt(data.notice[index]['pos']) == 1  ? '置顶' : '未置顶') + '</span>';
+                dataVal[index][5] = parseInt(data.notice[index]['type']) == 0 ? '未发表' : '已发表';
             }
 
             createTable('notice_table',dataVal);

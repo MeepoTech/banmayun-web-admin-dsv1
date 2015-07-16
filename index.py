@@ -44,7 +44,7 @@ class Home:
 class NoticeDetail:
     def GET(self,id):
         db = db_conn.DBConn()
-        sql = "SELECT id,title,content,time,type,summary,cover FROM notice WHERE id=%s"
+        sql = "SELECT id,title,content,time,type,summary,cover,pos FROM notice WHERE id=%s"
         rows = db.select(sql,(id,))
         for row in rows:
             cont = {
@@ -54,44 +54,49 @@ class NoticeDetail:
                 'time': row[3],
                 'type': row[4],
                 'summary': row[5],
-                'cover': row[6]
+                'cover': row[6],
+                'pos': row[7]
             }
         return json.dumps(cont)
 
     def POST(sefl,id):
-        form = web.input(data={})
-        title = form['title']
-        content = form['content']
-        time = form['time']
-        type = int(form['type'])
-        summary = form['summary']
-        cover = form['cover']
+        form = web.input()
+        options = []
+        params = []
+        for key in form:
+            options.append(key+'=%s')
+            params.append(form[key])
+
+        optionStr = ','.join(options)
+        sql = "UPDATE notice SET " + optionStr + ' where id=%s'
+        params.append(id)
 
         db = db_conn.DBConn()
-        sql = "UPDATE notice SET title=%s,content=%s,time=%s,type=%s,summary=%s,cover=%s where id=%s"
-        db.update(sql,(title,content,time,type,summary,cover,id))
-        return 'success';
+        db.update(sql,params)
+        
+        return 'success'
 
 class NoticeSave:
     def POST(self):
-        form = web.input(data={})
+        form = web.input()
         title = form['title']
         content = form['content']
         time = form['time']
         type = int(form['type'])
         summary = form['summary']
         cover = form['cover']
+        pos = 0
 
         db = db_conn.DBConn()
-        sql = "INSERT INTO notice(title,content,time,type,summary,cover) VALUES(%s,%s,%s,%s,%s,%s)"
-        db.insert(sql,(title,content,time,type,summary,cover))
+        sql = "INSERT INTO notice(title,content,time,type,summary,cover,pos) VALUES(%s,%s,%s,%s,%s,%s,%s)"
+        db.insert(sql,(title,content,time,type,summary,cover,pos))
         return 'success'
 
 class NoticeList:
     def GET(self):
         params = web.input(offset=None, count=None)
         db = db_conn.DBConn()
-        rows = db.select('SELECT id,title,time,type FROM notice LIMIT %s OFFSET %s',(params.count,params.offset))
+        rows = db.select('SELECT id,title,time,type,pos FROM notice order by pos desc, time desc LIMIT %s OFFSET %s',(params.count,params.offset))
         total= db.select('SELECT COUNT(*) FROM notice',());
         notice = []
         for row in rows:
@@ -99,7 +104,8 @@ class NoticeList:
                 'id': row[0],
                 'title': row[1],
                 'time': row[2],
-                'type': row[3]
+                'type': row[3],
+                'pos': row[4] if row[4] else 0
             }
             notice.append(cont)
 

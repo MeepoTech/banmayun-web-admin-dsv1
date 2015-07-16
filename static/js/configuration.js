@@ -45,6 +45,7 @@ var url_templates = {
 	group_info :         servers.group + '/{0}/info?offset={1}&count={2}&token={3}',
 	group_search : 		 servers.group + '/search?query={0}&offset={1}&count={2}&token={3}',
 	group_list:			 servers.group + '?offset={0}&count={1}&token={2}&filters=group.type>=10',
+	//group_list:			 servers.new_group + '?offset={0}&limit={1}&token={2}',
 	group_update:		 servers.group + '/{0}/update?token={1}',
 	group_updata_quota:  servers.group + '/{0}/quota?quota={1}&token={2}',
 	group_remove_user:   servers.group + '/{0}/users/{1}?token={2}',
@@ -77,7 +78,7 @@ var url_templates = {
     client_upload:       '/client',
     client_list:         '/client',
     client_del:          '/client/del',
-    client_update:       '/client/update'
+    client_update:       '/client/update',
 };
 
 var user_role = {
