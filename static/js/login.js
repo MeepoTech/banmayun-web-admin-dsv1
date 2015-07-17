@@ -30,7 +30,8 @@ function login(){
 		else{
 			local_data.adminname = username;
 			local_data.token = data.token;
-			local_data.device = data.device_id;
+			local_data.device = data.id;
+            local_data.userid = data.user_id;
 			var rememberMe = document.getElementById('remember_me').checked;
 			if(rememberMe){
 				localStorage.setItem("logging",true);
@@ -43,7 +44,7 @@ function login(){
 		}
 	}
 	
-	var completeUrl = String.format(url_templates.login,LANG,encodeURIComponent(username),encodeURIComponent(password));
+	var completeUrl = url_templates.auth.signIn(encodeURIComponent(username),encodeURIComponent(password));
 	request(completeUrl,'','post',after_login);
 }
 

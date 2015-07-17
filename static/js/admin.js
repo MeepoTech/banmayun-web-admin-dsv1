@@ -16,8 +16,8 @@ var strMaxLength = 15;
 var pageNumberShowed = 5;
 var topLimit = 10;
 
-var GROUP_TYPE = [];
-var USER_POSITION = [];
+var GROUP_TYPE = {};
+var USER_POSITION = {};
 
 $(function(){
 	//Supervisor
@@ -204,7 +204,7 @@ function logout(){
 			window.location.href='/';
 		}
 	}
-	var completeUrl = String.format(url_templates.logout,local_data.token);
+	var completeUrl = url_templates.auth.signOut(local_data.token);
 	request(completeUrl,"","post",after_logout);
 }
 
@@ -275,7 +275,7 @@ function resetPasswordSubmit(){
 			alert("两次密码必须相同！");
 			return;
 		}
-		var completeUrl = String.format(url_templates.change_password,local_data.adminname,lastPassword,newPassword);
+		var completeUrl = url_templates.auth.changePassword(local_data.adminname,lastPassword,newPassword);
 		request(completeUrl,"","post",after_reset);
 	}
 }
@@ -297,30 +297,31 @@ function listUser(){
 				$('#user_page_total_number').val(totalPageNumber);
 				$('#user_page_label').text('Page 1 of '+totalPageNumber);
 			}
-			for(var index = 0,pos = 0 ; index < data.count ; index++){
-				if(data.users[index].user_id != "00000000-0000-0000-0000-000000000000"){
+			for(var index = 0,pos = 0 ; index < data.entries.length ; index++){
+			    var user = data.entries[index];
+				if(user.id != "00000000-0000-0000-0000-000000000000"){
 					//Construct data
-					var user = data.users[index];
 					dataVal[pos] = [];
 					dataVal[pos][0] = offset+pos+1;
-					dataVal[pos][1] = '<input type="checkbox" value="'+user.user_id+'" name="'+pos+'">';
-					dataVal[pos][2] = user.user_name;
-					dataVal[pos][3] = user.display_name;
+					dataVal[pos][1] = '<input type="checkbox" value="'+user.id+'" name="'+pos+'">';
+					dataVal[pos][2] = user.name;
+					dataVal[pos][3] = String.denoise(user.display_name);
 					dataVal[pos][4] = user.email;
-					dataVal[pos][5] = user.registered_str;
+					dataVal[pos][5] = user.created_at.display_value;
 					dataVal[pos][6] = user.groups_can_own;
-					dataVal[pos][7] = '<a onClick="resetPassword(\''+user.user_id+'\')">重置</a>';
-					if(user.role != user_role.blocked){
-						dataVal[pos][8] = '<a style="color:#0088cc" onClick="changeUserState(\'0\',this,8)">已启用</a>';
+                    dataVal[pos][7] = user.source;
+					dataVal[pos][8] = '<a onClick="resetPassword(\''+user.id+'\')">重置</a>';
+					if(!user.is_blocked){
+						dataVal[pos][9] = '<a style="color:#0088cc" onClick="changeUserState(\'0\',this,9)">已启用</a>';
 					}
 					else{
-						dataVal[pos][8] = '<a style="color:#ff0000" onClick="changeUserState(\'1\',this,8)">已禁用</a>';
+						dataVal[pos][9] = '<a style="color:#ff0000" onClick="changeUserState(\'1\',this,9)">已禁用</a>';
 					}
 				
 					saveDataVal[pos] = [];
-					saveDataVal[pos][0] = user.user_id;
-					saveDataVal[pos][1] = user.user_name;
-					saveDataVal[pos][2] = user.role;
+					saveDataVal[pos][0] = user.id;
+					saveDataVal[pos][1] = user.name;
+					saveDataVal[pos][2] = user.role.name;
 					saveDataVal[pos][3] = user.groups_can_own;
 					pos = pos + 1;
 				}
@@ -329,7 +330,7 @@ function listUser(){
 			createTable('user_table',dataVal);
 		}
 	}
-	var completeUrl = String.format(url_templates.user_list,offset,pageSize,local_data.token);
+	var completeUrl = url_templates.user.list(local_data.token,offset,pageSize);
 	request(completeUrl,"","get",after_list);
 }
 
@@ -351,40 +352,40 @@ function listGroup(){
 				$('#group_page_label').text('Page 1 of '+totalPageNumber);
 			}
 			
-			for(var index = 0 ; index < data.count ; index++){
-				var group = data.groups[index];
+			for(var index = 0 ; index < data.entries.length ; index++){
+				var group = data.entries[index];
 				dataVal[index] = [];
 				dataVal[index][0] = offset+index+1;
-				dataVal[index][1] = '<input type="checkbox" value="'+group.group_id+'" name="'+index+'">';
-				dataVal[index][2] = '<a onClick="userList(\''+group.group_id+'\')">'+stringThumbnail(group.group_name)+'</a>';
-				dataVal[index][3] = stringThumbnail(group.description);
-				var tags = "";
-				if(group.tags.length > 0){
-					tags = group.tags[0];
-					for(var tagIndex = 1 ; tagIndex < group.tags.length ; tagIndex ++){
-						tags = tags + ',' + group.tags[tagIndex];
-					}
-				}
-				dataVal[index][4] = stringThumbnail(tags);
+				dataVal[index][1] = '<input type="checkbox" value="'+group.id+'" name="'+index+'">';
+				dataVal[index][2] = '<a onClick="userList(\''+group.id+'\')">'+stringThumbnail(group.name)+'</a>';
+				dataVal[index][3] = stringThumbnail(String.denoise(group.intro));
+				dataVal[index][4] = stringThumbnail(String.denoise(group.tags));
 				
-				dataVal[index][5] = group.type_str;
-				dataVal[index][6] = getGroupSearch(group.visible_to_search);
-				dataVal[index][7] = group.established_str;
-				if(data.groups[index].status == group_status.normal){
-					dataVal[index][8] = '<a style="color:#0088cc" onClick="changeGroupState(\'0\',this)">已启用</a>';
+				dataVal[index][5] = group.type.display_value;
+				dataVal[index][6] = getGroupSearch(group.is_visible);
+				dataVal[index][7] = group.created_at.display_value;
+				dataVal[index][8] = group.source;
+
+                if(group.is_promoted)
+                    dataVal[index][9] = '<a style="color:#ff0000" onClick="changeGroupPromoted(\'0\',this)">是</a>';
+                else
+                    dataVal[index][9] = '<a style="color:#0088cc" onClick="changeGroupPromoted(\'1\',this)">否</a>';
+                
+                if(!group.is_blocked){
+					dataVal[index][10] = '<a style="color:#0088cc" onClick="changeGroupState(\'0\',this)">已启用</a>';
 				}
 				else{
-					dataVal[index][8] = '<a style="color:#ff0000" onClick="changeGroupState(\'1\',this)">已禁用</a>';;
+					dataVal[index][10] = '<a style="color:#ff0000" onClick="changeGroupState(\'1\',this)">已禁用</a>';;
 				}
 				
 				saveDataVal[index] = [];
-				saveDataVal[index][0] = group.group_name;
-				saveDataVal[index][1] = group.description;
-				saveDataVal[index][2] = tags;
-				saveDataVal[index][3] = group.type;
-				saveDataVal[index][4] = group.group_id;
-				saveDataVal[index][5] = group.type_str;
-				saveDataVal[index][6] = group.visible_to_search;
+				saveDataVal[index][0] = group.name;
+				saveDataVal[index][1] = String.denoise(group.intro);
+				saveDataVal[index][2] = String.denoise(group.tags);
+				saveDataVal[index][3] = group.type.name;
+				saveDataVal[index][4] = group.id;
+				saveDataVal[index][5] = group.type.display_value;
+				saveDataVal[index][6] = group.is_visible;
 			}
 			//Save data
 			localStorage.setItem('groupTableData',JSON.stringify(saveDataVal));
@@ -392,7 +393,7 @@ function listGroup(){
 		}
 	}
 	
-	var completeUrl = String.format(url_templates.group_list,offset,pageSize,local_data.token);
+	var completeUrl = url_templates.group.list(local_data.token,offset,pageSize);
     request(completeUrl,"","get",after_list);
 }
 
@@ -410,24 +411,26 @@ function listGroupUser(){
 			var saveDataVal = [];
 			if(currentPageNumber == 1){
 				//Create page number
-				var totalPageNumber = calcPageTotalCount(data.users.total,pageSize);
+				var totalPageNumber = calcPageTotalCount(data.total,pageSize);
 				$('#group_user_page_total_number').val(totalPageNumber);
 				$('#group_user_page_label').text('Page 1 of '+totalPageNumber);
 			}
-			for(var index = 0 ; index < data.users.users.length ; index++){
-				dataVal[index] = [];
+			for(var index = 0 ; index < data.entries.length ; index++){
+				var user = data.entries[index];
+                dataVal[index] = [];
 				dataVal[index][0] = index+1;
-				dataVal[index][1] = '<input type="checkbox" value="'+data.users.users[index].user_id+'" name="'+index+'">';
-				dataVal[index][2] = data.users.users[index].user_name;
-				dataVal[index][3] = data.users.users[index].display_name;
-				dataVal[index][4] = data.users.users[index].email;
-				dataVal[index][5] = data.users.users[index].relation.position_str;
+				dataVal[index][1] = '<input type="checkbox" value="'+user.id+'" name="'+index+'">';
+				dataVal[index][2] = user.name;
+				dataVal[index][3] = String.denoise(user.display_name);
+				dataVal[index][4] = user.email;
+				dataVal[index][5] = user.relation.role.display_value;
+                dataVal[index][6] = user.source;
 				
 				saveDataVal[index] = [];
 				saveDataVal[index][0] = groupID;
-				saveDataVal[index][1] = data.users.users[index].user_id;
-				saveDataVal[index][2] = data.users.users[index].relation.position_str;
-				saveDataVal[index][3] = data.users.users[index].relation.position;
+				saveDataVal[index][1] = user.id;
+				saveDataVal[index][2] = user.relation.role.display_value;
+				saveDataVal[index][3] = user.relation.role.name;
 			}
 			//$('#group_table').css('display','none');
 			localStorage.setItem('groupUserTableData',JSON.stringify(saveDataVal));
@@ -435,20 +438,17 @@ function listGroupUser(){
 		}
 	}
 	
-	var completeUrl = String.format(url_templates.group_info,groupID,offset,pageSize,local_data.token);
+	var completeUrl = url_templates.group_user.list(groupID,local_data.token,null,offset,pageSize);
 	request(completeUrl,"","get",after_list);
 }
 
 function changeUserState(currentState,currentTR,tdIndex){
 	var tr = currentTR.parentNode.parentNode;
 	var userID = tr.cells[1].firstChild.value;
-	var userRole = user_role.blocked;
+	var isBlocked = false;
 	
 	if(currentState == 0){
-		userRole = user_role.blocked;
-	}
-	else{
-		userRole = user_role.user;
+		isBlocked = true;
 	}
 	
 	function after_update(data,status){
@@ -466,10 +466,10 @@ function changeUserState(currentState,currentTR,tdIndex){
 	}
 	
 	var form = JSON.stringify({
-		"role" : userRole
+		"is_blocked" : isBlocked
 	});
 	
-	var completeUrl = String.format(url_templates.user_update,userID,local_data.token);
+	var completeUrl = url_templates.user.update(userID,local_data.token);
 	request(completeUrl,form,"post",after_update);
 }
 
@@ -495,32 +495,26 @@ function quotaGroupSearch(){
 					$('#quota_group_page_total_number').val(totalPageNumber);
 					$('#quota_group_page_label').text('Page 1 of '+totalPageNumber);
 				}
-				for(var index = 0 ; index < data.groups.length ; index ++){
+				for(var index = 0 ; index < data.entries.length ; index ++){
 					dataVal[index] = [];
-					var group = data.groups[index];
+					var group = data.entries[index];
 					dataVal[index][0] = offset+index+1;
-					dataVal[index][1] = group.group_name;
-					dataVal[index][2] = group.description;
-					var tags = "";
-					if(group.tags.length > 0){
-						tags = group.tags[0];
-						for(var tagIndex = 1 ; tagIndex < group.tags.length ; tagIndex ++){
-							tags = tags + ',' + group.tags[tagIndex];
-						}
-					}
-					dataVal[index][3] = tags;
-					dataVal[index][4] = '<a onClick="groupQuotaChange(\''+group.group_id+'\')">修改 &rarr;</a>';
+					dataVal[index][1] = group.name;
+					dataVal[index][2] = group.intro;
+					dataVal[index][3] = group.tags;
+					dataVal[index][4] = '<a onClick="groupQuotaChange(\''+group.id+'\')">修改 &rarr;</a>';
 				}
 				createTable('quota_group_table',dataVal);
 			}
 		}
 	}
-	var completeUrl = String.format(url_templates.group_search,groupName,offset,parseInt(pageSize / 2),local_data.token);
+	var completeUrl = url_templates.search.groups(groupName,local_data.token,null,offset,parseInt(pageSize / 2));
 	request(completeUrl,"","get",after_search);
 }
 
 function quotaGroupSubmit(){
 	var group_id = $('#quota_group_id').val();
+    var root_id = $('#quota_group_root_id').val();
 	var group_quota = $('#quota_group_quota').val();
 	
 	function after_update(data,status){
@@ -543,8 +537,8 @@ function quotaGroupSubmit(){
 	}
 	else{
 		$('#quota_group_quota_controls').removeClass('error');
-		group_quota = parseInt(group_quota) * 1024 * 1024 * 1024;
-		var completeUrl = String.format(url_templates.group_updata_quota,group_id,group_quota,local_data.token);
+		group_quota = group_quota + 'GB';
+		var completeUrl = url_templates.root.setQuota(group_id,group_quota,local_data.token);
 		request(completeUrl,"","post",after_update);
 	}
 }
@@ -576,20 +570,27 @@ function groupQuotaChange(groupID){
 			
 		}
 		else{
-			$('#quota_group_id').val(data.group_id);
-			$('#quota_group_name').val(data.group_name);
-			$('#quota_group_usage_number').val(data.usage.used);
-			var usage = parseInt(data.usage.used) / parseInt(data.usage.quota) * 100;
-			usage = Number(usage).toFixed(2);
-			$('#quota_group_usage').css('width',usage+"%");
-			$('#quota_group_usage_str').text(usage+"%");
-			var quotaToGB = parseInt(data.usage.quota) / (1024 * 1024 * 1024);
-			$('#quota_group_quota').val(quotaToGB);
-			$('#quota_group_submit').removeAttr('disabled');
+			$('#quota_group_id').val(data.id);
+            $('#quota_group_root_id').val(data.root_id);
+			$('#quota_group_name').val(data.name);
+            
+            var url = url_templates.root.get(data.root_id,local_data.token);
+            request(url,"","get",function(root,status){
+                if(status == 'success'){
+			        $('#quota_group_usage_number').val(root.used.bytes);
+			        var usage = parseInt(root.used.bytes) / parseInt(root.quota.bytes) * 100;
+			        usage = Number(usage).toFixed(2);
+			        $('#quota_group_usage').css('width',usage+"%");
+			        $('#quota_group_usage_str').text(usage+"%");
+			        var quotaToGB = parseInt(root.quota.bytes) / (1024 * 1024 * 1024);
+			        $('#quota_group_quota').val(quotaToGB);
+			        $('#quota_group_submit').removeAttr('disabled');
+                }
+            });
 		}
 	}
 	
-	var completeUrl = String.format(url_templates.group_info,groupID,0,0,local_data.token);
+	var completeUrl = url_templates.group.get(groupID,local_data.token);
 	request(completeUrl,"","get",after_getInfo);
 }
 
@@ -619,25 +620,26 @@ function quotaUserSearch(){
 					$('#quota_user_page_total_number').val(totalPageNumber);
 					$('#quota_user_page_label').text('Page 1 of '+totalPageNumber);
 				}
-				for(var index = 0 ; index < data.users.length ; index++){
+				for(var index = 0 ; index < data.entries.length ; index++){
 					dataVal[index] = [];
-					var user = data.users[index];
+					var user = data.entries[index];
 					dataVal[index][0] = offset+index+1;
-					dataVal[index][1] = user.user_name;
-					dataVal[index][2] = user.display_name;
+					dataVal[index][1] = user.name;
+					dataVal[index][2] = String.denoise(user.display_name);
 					dataVal[index][3] = user.email;
-					dataVal[index][4] = '<a onClick="userQuotaChange(\''+user.user_id+'\')">修改 &rarr;</a>';
+					dataVal[index][4] = '<a onClick="userQuotaChange(\''+user.id+'\')">修改 &rarr;</a>';
 				}
 				createTable('quota_user_table',dataVal);
 			}
 		}
 	}
-	var completeUrl = String.format(url_templates.user_search,userName,offset,parseInt(pageSize / 2),local_data.token);
+	var completeUrl = url_templates.search.users(userName,local_data.token,null,offset,parseInt(pageSize / 2));
 	request(completeUrl,"","get",after_search);
 }
 
 function quotaUserSubmit(){
 	var user_id = $('#quota_user_id').val();
+    var root_id = $('#quota_user_root_id').val();
 	var user_quota = $('#quota_user_quota').val();
 	
 	function after_update(data,status){
@@ -646,7 +648,7 @@ function quotaUserSubmit(){
 		else{
 			$('#quota_user_success_prompt').css('display','block');
 			var usage = parseInt($('#quota_user_usage_number').val());
-			usage = usage / user_quota * 100;
+			usage = usage / data.quota.bytes * 100;
 			usage = Number(usage).toFixed(2);
 			$('#quota_user_usage').css('width',usage+"%");
 			$('#quota_user_usage_str').text(usage+"%");
@@ -660,8 +662,8 @@ function quotaUserSubmit(){
 	}
 	else{
 		$('#quota_user_quota_controls').removeClass('error');
-		user_quota = parseInt(user_quota) * 1024 * 1024 * 1024;
-		var completeUrl = String.format(url_templates.user_update_quota,user_id,user_quota,local_data.token);
+		user_quota = user_quota + 'GB';
+		var completeUrl = url_templates.root.setQuota(root_id,user_quota,local_data.token);
 		request(completeUrl,"","post",after_update);	
 	}
 }
@@ -688,19 +690,25 @@ function userQuotaChange(userID){
 			
 		}
 		else{
-			$('#quota_user_id').val(data.user_id);
-			$('#quota_user_name').val(data.user_name);
-			$('#quota_user_usage_number').val(data.usage.used);
-			var usage = parseInt(data.usage.used) / parseInt(data.usage.quota) * 100;
-			usage = Number(usage).toFixed(2);
-			$('#quota_user_usage').css('width',usage+"%");
-			$('#quota_user_usage_str').text(usage+"%");
-			var quotaToGB = parseInt(data.usage.quota) / (1024 * 1024 * 1024);
-			$('#quota_user_quota').val(quotaToGB);
-			$('#quota_user_submit').removeAttr('disabled');
+			$('#quota_user_id').val(data.id);
+            $('#quota_user_root_id').val(data.root_id);
+			$('#quota_user_name').val(data.name);
+            var url = url_templates.root.get(data.root_id,local_data.token);
+            request(url,"","get",function(root,status){
+                if(status == 'success'){
+			        $('#quota_user_usage_number').val(root.used.bytes);
+			        var usage = parseInt(root.used.bytes) / parseInt(root.quota.bytes) * 100;
+			            usage = Number(usage).toFixed(2);
+			        $('#quota_user_usage').css('width',usage+"%");
+			        $('#quota_user_usage_str').text(usage+"%");
+			        var quotaToGB = parseInt(root.quota.bytes) / (1024 * 1024 * 1024);
+			        $('#quota_user_quota').val(quotaToGB);
+			        $('#quota_user_submit').removeAttr('disabled');
+                }
+            });
 		}
 	}
-	var completeUrl = String.format(url_templates.user_info,userID,local_data.token);
+	var completeUrl = url_templates.user.get(userID,local_data.token);
 	request(completeUrl,"","get",after_getInfo);
 }
 
@@ -860,7 +868,7 @@ function updateUserInfo(userID,groupCanOwn){
 		}
 	}
 	
-	var completeUrl = String.format(url_templates.user_update,userID,local_data.token);
+	var completeUrl = url_templates.user.update(userID,local_data.token);
 	request(completeUrl,form,"post",after_update);
 }
 
@@ -876,7 +884,7 @@ function resetPassword(userID){
 		}
 		//var new_password = SHA256_hash('123456');
 		var new_password = '123456';
-		var completeUrl = String.format(url_templates.user_update_password,userID,new_password,local_data.token);
+        var completeUrl = url_templates.user.setPassword(userID,local_data.token,new_password);
 		request(completeUrl,"","post",after_update);
 	}
 	else{
@@ -908,25 +916,31 @@ function userSearch(){
 				$('#user_page_label').text('Page 1 of '+totalPageNumber);
 			}
 			
-			for(var index = 0,pos = 0 ; index < data.count ; index++){
-				if(data.users[index].user_id != "00000000-0000-0000-0000-000000000000"){
+			for(var index = 0,pos = 0 ; index < data.entries.length ; index++){
+                var user = data.entries[index];
+				if(user.id != "00000000-0000-0000-0000-000000000000"){
 					//Construct data
-					var user = data.users[index];
 					dataVal[pos] = [];
 					dataVal[pos][0] = pos+1;
-					dataVal[pos][1] = '<input type="checkbox" value="'+user.user_id+'" name="'+pos+'">';
-					dataVal[pos][2] = user.user_name;
-					dataVal[pos][3] = user.display_name;
+					dataVal[pos][1] = '<input type="checkbox" value="'+user.id+'" name="'+pos+'">';
+					dataVal[pos][2] = user.name;
+					dataVal[pos][3] = String.denoise(user.display_name);
 					dataVal[pos][4] = user.email;
-					dataVal[pos][5] = user.registered_str;
+					dataVal[pos][5] = user.created_at.display_value;
 					dataVal[pos][6] = user.groups_can_own;
-					dataVal[pos][7] = '<a onClick="resetPassword(\''+user.user_id+'\')">重置</a>';
-					dataVal[pos][8] = '<a onClick="changeUserState(\'0\',this,8)">已启用</a>';
+                    dataVal[pos][7] = user.source;
+					dataVal[pos][8] = '<a onClick="resetPassword(\''+user.id+'\')">重置</a>';
+					if(!user.is_blocked){
+						dataVal[pos][9] = '<a style="color:#0088cc" onClick="changeUserState(\'0\',this,9)">已启用</a>';
+					}
+					else{
+						dataVal[pos][9] = '<a style="color:#ff0000" onClick="changeUserState(\'1\',this,9)">已禁用</a>';
+					}
 				
 					saveDataVal[pos] = [];
-					saveDataVal[pos][0] = user.user_id;
-					saveDataVal[pos][1] = user.user_name;
-					saveDataVal[pos][2] = user.role;
+					saveDataVal[pos][0] = user.id;
+					saveDataVal[pos][1] = user.name;
+					saveDataVal[pos][2] = user.is_blokced;
 					saveDataVal[pos][3] = user.groups_can_own;
 					pos = pos + 1;
 				}
@@ -935,7 +949,7 @@ function userSearch(){
 			createTable('user_table',dataVal);
 		}
 	}
-	var completeUrl = String.format(url_templates.user_search,userName,offset,pageSize,local_data.token);
+	var completeUrl = url_templates.search.users(userName,local_data.token,null,offset,pageSize);
 	request(completeUrl,"","get",after_search);
 }
 
@@ -1227,59 +1241,82 @@ function groupSearch(){
 				$('#group_page_label').text('Page 1 of '+totalPageNumber);
 			}
 			
-			for(var index = 0 ; index < data.count ; index++){
-				var group = data.groups[index];
+			for(var index = 0 ; index < data.entries.length ; index++){
+				var group = data.entries[index];
 				dataVal[index] = [];
 				dataVal[index][0] = index+1;
-				dataVal[index][1] = '<input type="checkbox" value="'+group.group_id+'" name="'+index+'">';
-				dataVal[index][2] = '<a onClick="userList(\''+group.group_id+'\')">'+stringThumbnail(group.group_name)+'</a>';
-				dataVal[index][3] = stringThumbnail(group.description);
-				var tags = "";
-				if(group.tags.length > 0){
-					tags = group.tags[0];
-					for(var tagIndex = 1 ; tagIndex < group.tags.length ; tagIndex ++){
-						tags = tags + ',' + group.tags[tagIndex];
-					}
-				}
-				dataVal[index][4] = stringThumbnail(tags);
+				dataVal[index][1] = '<input type="checkbox" value="'+group.id+'" name="'+index+'">';
+				dataVal[index][2] = '<a onClick="userList(\''+group.id+'\')">'+stringThumbnail(group.name)+'</a>';
+				dataVal[index][3] = stringThumbnail(String.denoise(group.intro));
+				dataVal[index][4] = stringThumbnail(String.denoise(group.tags));
 				
-				dataVal[index][5] = group.type_str;
-				dataVal[index][6] = getGroupSearch(group.visible_to_search);
-				dataVal[index][7] = group.established_str;
-				if(data.groups[index].status == group_status.normal){
-					dataVal[index][8] = '<a style="color:#0088cc" onClick="changeGroupState(\'0\',this)">已启用</a>';
+				dataVal[index][5] = group.type.display_value;
+				dataVal[index][6] = getGroupSearch(group.is_visible);
+				dataVal[index][7] = group.created_at.display_value;
+				dataVal[index][8] = group.source;
+
+                if(group.is_promoted)
+                    dataVal[index][9] = '<a style="color:#ff0000" onClick="changeGroupPromoted(\'0\',this)">是</a>';
+                else
+                    dataVal[index][9] = '<a style="color:#0088cc" onClick="changeGroupPromoted(\'1\',this)">否</a>';
+                
+                if(!group.is_blocked){
+					dataVal[index][10] = '<a style="color:#0088cc" onClick="changeGroupState(\'0\',this)">已启用</a>';
 				}
 				else{
-					dataVal[index][8] = '<a style="color:#ff0000" onClick="changeGroupState(\'1\',this)">已禁用</a>';;
+					dataVal[index][10] = '<a style="color:#ff0000" onClick="changeGroupState(\'1\',this)">已禁用</a>';;
 				}
 				
 				saveDataVal[index] = [];
-				saveDataVal[index][0] = group.group_name;
-				saveDataVal[index][1] = group.description;
-				saveDataVal[index][2] = tags;
-				saveDataVal[index][3] = group.type;
-				saveDataVal[index][4] = group.group_id;
-				saveDataVal[index][5] = group.type_str;
+				saveDataVal[index][0] = group.name;
+				saveDataVal[index][1] = String.denoise(group.intro);
+				saveDataVal[index][2] = String.denoise(group.tags);
+				saveDataVal[index][3] = group.type.name;
+				saveDataVal[index][4] = group.id;
+				saveDataVal[index][5] = group.type.display_value;
 			}
 			//Save data
 			localStorage.setItem('groupTableData',JSON.stringify(saveDataVal));
 			createTable('group_table',dataVal);
 		}
 	}
-	var completeUrl = String.format(url_templates.group_search,groupName,offset,pageSize,local_data.token);
+	var completeUrl = url_templates.search.groups(groupName,local_data.token,null,offset,pageSize);
 	request(completeUrl,"","get",after_search);
+}
+
+function changeGroupPromoted(currentState,currentTR){
+	var tr = currentTR.parentNode.parentNode;
+	var groupID = tr.cells[1].firstChild.value;
+	var isPromoted = true;
+	
+	if(currentState == 0){
+		isPromoted = false;
+	}
+	
+	function after_set(data,status){
+		if(status == 'error'){
+		}
+		else{
+			if(currentState == 0){
+                tr.cells[9].innerHTML = '<a style="color:#0088cc" onClick="changeGroupPromoted(\'1\',this)">否</a>';
+			}
+			else{
+                tr.cells[9].innerHTML = '<a style="color:#ff0000" onClick="changeGroupPromoted(\'0\',this)">是</a>';
+			}
+		}
+	}
+	
+	var completeUrl = url_templates.group.setPromoted(groupID,isPromoted,local_data.token);
+	request(completeUrl,"","post",after_set);
 }
 
 function changeGroupState(currentState,currentTR){
 	var tr = currentTR.parentNode.parentNode;
 	var groupID = tr.cells[1].firstChild.value;
-	var groupStatus = 0;
+	var isBlocked = false;
 	
 	if(currentState == 0){
-		groupStatus = group_status.blocked;
-	}
-	else{
-		groupStatus = group_status.normal;
+		isBlocked = true;
 	}
 	
 	function after_update(data,status){
@@ -1287,19 +1324,19 @@ function changeGroupState(currentState,currentTR){
 		}
 		else{
 			if(currentState == 0){
-				tr.cells[8].innerHTML = '<a style="color:#ff0000" onClick="changeGroupState(\'1\',this)">已禁用</a>';
+				tr.cells[10].innerHTML = '<a style="color:#ff0000" onClick="changeGroupState(\'1\',this)">已禁用</a>';
 			}
 			else{
-				tr.cells[8].innerHTML = '<a style="color:#0088cc" onClick="changeGroupState(\'0\',this)">已启用</a>';
+				tr.cells[10].innerHTML = '<a style="color:#0088cc" onClick="changeGroupState(\'0\',this)">已启用</a>';
 			}
 		}
 	}
 	
 	var form = JSON.stringify({
-		"status" : groupStatus
+		"is_blocked" : isBlocked
 	});
 	
-	var completeUrl = String.format(url_templates.group_update,groupID,local_data.token);
+	var completeUrl = url_templates.group.update(groupID,local_data.token);
 	request(completeUrl,form,"post",after_update);
 }
 
@@ -1329,29 +1366,25 @@ function getGroupType(){
 		}
 		else{
 			for(var index = 0 ; index < data.length ; index++){
-				GROUP_TYPE[index] = new Object();
-				GROUP_TYPE[index].type_str = data[index].type_details;
-				GROUP_TYPE[index].type = data[index].type;
+				GROUP_TYPE[data[index].name] = data[index].display_value;
 			}
 		}
 	}
-	var completeUrl = String.format(url_templates.group_type,local_data.token);
+	var completeUrl = url_templates.consts.group_types(local_data.token);
 	request(completeUrl,"","get",after_get);
 }
 
 function createGroupTypeSelect(itemNumber,itemName){
 	var htmlStr = '<select id="group_type">';
-	if(GROUP_TYPE.length > 0){
-		for(var index = 0 ; index < GROUP_TYPE.length ; index++){
-			if(itemName == GROUP_TYPE[index].type_str){
-				htmlStr = htmlStr + '<option value="'+GROUP_TYPE[index].type+'">'+GROUP_TYPE[index].type_str+'</option>';
-			}
+    for(var key in GROUP_TYPE){
+        if(itemName == GROUP_TYPE[key]){
+		    htmlStr = htmlStr + '<option value="'+key+'">'+GROUP_TYPE[key]+'</option>';
 		}
+	}
 		
-		for(var index = 0 ; index < GROUP_TYPE.length ; index++){
-			if(itemName != GROUP_TYPE[index].type_str){
-				htmlStr = htmlStr + '<option value="'+GROUP_TYPE[index].type+'">'+GROUP_TYPE[index].type_str+'</option>';
-			}
+	for(var key in GROUP_TYPE){
+		if(itemName != GROUP_TYPE[key]){
+			htmlStr = htmlStr + '<option value="'+key+'">'+GROUP_TYPE[key]+'</option>';
 		}
 	}
 	htmlStr = htmlStr + '</select>';
@@ -1364,28 +1397,22 @@ function getGroupUserPosition(){
 		}
 		else{
 			for(var index = 0 ; index < data.length ; index++){
-				USER_POSITION[index] = new Object();
-				USER_POSITION[index].position_str = data[index].position_str;
-				USER_POSITION[index].position = data[index].position;
+				USER_POSITION[data[index].name] = data[index].display_value;
 			}
-			USER_POSITION[index] = new Object();
-			USER_POSITION[index].position = 0;
-			USER_POSITION[index].position_str = "群主"
 		}
 	}
-	var completeUrl = String.format(url_templates.relation_positions,local_data.token);
+	//TODO
+    var completeUrl = url_templates.consts.relation_roles(local_data.token);
 	request(completeUrl,"","get",after_get);
 }
 
 function createGroupUserPositionSelect(itemNumber,itemName){
-	var htmlStr = '<select id="group_user_position" class="span6">';
-	if(USER_POSITION.length > 0){
-		htmlStr = htmlStr + '<option value="'+itemNumber+'">'+itemName+'</option>';
-		for(var index = 0 ; index < USER_POSITION.length ; index++){
-			if(itemNumber != USER_POSITION[index].position){
-				htmlStr = htmlStr + '<option value="'+USER_POSITION[index].position+'">'+USER_POSITION[index].position_str+'</option>';
-			}	
-		}
+	var htmlStr = '<select id="group_user_position" class="span6">';	
+        htmlStr = htmlStr + '<option value="'+itemNumber+'">'+itemName+'</option>';
+    for(var key in USER_POSITION){
+		if(itemNumber != key){
+			htmlStr = htmlStr + '<option value="'+key+'">'+USER_POSITION[key]+'</option>';
+		}	
 	}
 	htmlStr = htmlStr + '</select>';
 	return htmlStr;
@@ -1475,7 +1502,7 @@ function groupSave(){
 				saveData[pos][6] = visible;
 				localStorage.setItem('groupTableData',JSON.stringify(saveData));
 				element.checked = false;
-				updateGroupInfo(saveData[pos][4],description,tags,type,visible);
+				updateGroupInfo(saveData[pos][4],description,tags,type,type_str,visible);
 			}
         });
 		if(!errorFlag){
@@ -1506,28 +1533,29 @@ function groupUserSearchSubmit(){
 				$('#group_user_page_total_number').val(totalPageNumber);
 				$('#group_user_page_label').text('Page 1 of '+totalPageNumber);
 			}
-			for(var index = 0 ; index < data.users.length ; index++){
+			for(var index = 0 ; index < data.entries.length ; index++){
+                var user = data.entries[index];
 				dataVal[index] = [];
 				dataVal[index][0] = index+1;
-				dataVal[index][1] = '<input type="checkbox" value="'+data.users[index].user_id+'" name="'+index+'">';
-				dataVal[index][2] = data.users[index].name;
-				dataVal[index][3] = data.users[index].full_name;
-				dataVal[index][4] = data.users[index].email;
-				dataVal[index][5] = data.users[index].relation.role_details;
+				dataVal[index][1] = '<input type="checkbox" value="'+user.id+'" name="'+index+'">';
+				dataVal[index][2] = user.name;
+				dataVal[index][3] = String.denoise(user.display_name);
+				dataVal[index][4] = user.email;
+				dataVal[index][5] = user.relation.role.display_value;
 				
 				saveDataVal[index] = [];
 				saveDataVal[index][0] = groupID;
-				saveDataVal[index][1] = data.users[index].user_id;
-				saveDataVal[index][2] = data.users[index].relation.role_details;
-				saveDataVal[index][3] = relation_position[data.users[index].relation.role];
+				saveDataVal[index][1] = user.id;
+				saveDataVal[index][2] = user.relation.role.display_value;
+				saveDataVal[index][3] = user.relation.role.name;
 			}
 			//$('#group_table').css('display','none');
 			localStorage.setItem('groupUserTableData',JSON.stringify(saveDataVal));
 			createTable('group_user_table',dataVal);
 		}
 	}
-	
-	var completeUrl = String.format(url_templates.group_user_search,groupID,query,offset,pageSize,local_data.token);
+
+	var completeUrl = url_templates.search.users(query,local_data.token,groupID,offset,pageSize);
 	request(completeUrl,"","get",after_search);
 }
 
@@ -1543,21 +1571,21 @@ function groupAdduserSearchSubmit(){
 		}
 		else{
 			var dataVal = [];
-			for(var index = 0,pos = 0; index < data.count; index++){
-				var user = data.users[index];
-				if(user.user_id != "00000000-0000-0000-0000-000000000000"){
+			for(var index = 0,pos = 0; index < data.entries.length; index++){
+				var user = data.entries[index];
+				if(user.id != "00000000-0000-0000-0000-000000000000"){
 					dataVal[pos] = [];
-					dataVal[pos][0] = user.user_name;
-					dataVal[pos][1] = user.display_name;
+					dataVal[pos][0] = user.name;
+					dataVal[pos][1] = String.denoise(user.display_name);
 					dataVal[pos][2] = user.email;
-					dataVal[pos][3] = user.registered_str;
-					dataVal[pos][4] = '<a onClick="addUserToAlternativeBox(\''+user.user_name+'\',\''+user.user_id+'\')">添加</a>';
+					dataVal[pos][3] = user.created_at.display_value;
+					dataVal[pos][4] = '<a onClick="addUserToAlternativeBox(\''+user.name+'\',\''+user.id+'\')">添加</a>';
 				}
 			}
 			createTable('group_adduser_table',dataVal);
 		}
 	}
-	var completeUrl = String.format(url_templates.user_search,userName,0,-1,local_data.token);
+	var completeUrl = url_templates.search.users(userName,local_data.token);
 	request(completeUrl,"","get",after_search);
 }
 
@@ -1604,7 +1632,7 @@ function groupAdduserSubmit(){
 		}
 		$userList.each(function(index, element) {
             var userID = element.value;
-			var completeUrl = String.format(url_templates.group_add_user,groupID,userID,local_data.token);
+			var completeUrl = url_templates.group_user.add(groupID,userID,local_data.token);
 			request(completeUrl,"","post",after_add);
         });
 	}
@@ -1652,13 +1680,16 @@ function groupUserSave(){
 			saveData[pos][3] = position;
 			localStorage.setItem('groupUserTableData',JSON.stringify(saveData));
 			element.checked = false;
-			updateGroupUserInfo(saveData[pos][0],saveData[pos][1],position);
+			updateGroupUserInfo(saveData[pos][0],saveData[pos][1],{
+                name : position,
+                display_value: position_str
+            });
         });
 		deactivateEdit('group_user');
 	}
 }
 
-function updateGroupInfo(groupID,description,tags,type,visible){
+function updateGroupInfo(groupID,description,tags,type,type_str,visible){
 	/*var tagArray = tags.split(',');
 	for(var index = 0; index < tagArray.length ; index++)
 		tagArray[index] = Trim(tagArray[index]).toLowerCase();*/
@@ -1666,7 +1697,10 @@ function updateGroupInfo(groupID,description,tags,type,visible){
 	var form = JSON.stringify({
 		"intro" : description,
 		"tags" : tags,
-		"type" : type,
+		"type" : {
+            'name': type,
+            'display_value': type_str
+        },
 		"is_visible" : visible
 	});
 	
@@ -1676,13 +1710,14 @@ function updateGroupInfo(groupID,description,tags,type,visible){
 		else{
 		}
 	}
-	var completeUrl = String.format(url_templates.new_group_update,groupID,local_data.token);
+
+	var completeUrl = url_templates.group.update(groupID,local_data.token);
 	request(completeUrl,form,"post",after_update);
 }
 
 function updateGroupUserInfo(groupID,userID,position){
 	var form = JSON.stringify({
-		"position" : position
+		"role" : position
 	});
 	function after_update(data,status){
 		if(status == 'error'){
@@ -1690,7 +1725,8 @@ function updateGroupUserInfo(groupID,userID,position){
 		else{
 		}
 	}
-	var completeUrl = String.format(url_templates.group_user_update,groupID,userID,local_data.token);
+	//TODO
+    var completeUrl = url_templates.group_user.update(groupID,userID,local_data.token);
 	request(completeUrl,form,"post",after_update);
 }
 
@@ -1795,7 +1831,7 @@ function disbandGroup(groupID){
 			listGroup();
 		}
 	}
-	var completeUrl = String.format(url_templates.group_disband,groupID,local_data.token);
+	var completeUrl = url_templates.group.del(groupID,local_data.token);
 	request(completeUrl,"","delete",after_disband);
 }
 
@@ -1822,7 +1858,7 @@ function deleteUserFromGroup(groupID,userID){
 		}
 	}
 	
-	var completeUrl = String.format(url_templates.group_remove_user,groupID,userID,local_data.token);
+	var completeUrl = url_templates.group_user.remove(groupID,userID,local_data.token);
 	request(completeUrl,"","delete",after_delete);
 }
 
@@ -1907,7 +1943,8 @@ function importUserDown(){
 		text = text + export_user_header.user_name + ',';
 		text = text + export_user_header.display_name + ',';
 		text = text + export_user_header.password + ',';
-		text = text + export_user_header.email + '\n';
+        text = text + export_user_header.source + ',';
+        text = text + export_user_header.email + '\n';
 	
 	var blob = new Blob([text],{type: "text/plain;charset=utf-8"});
 	if(blob){
@@ -1922,7 +1959,8 @@ function importGroupDown(){
 		text = text + export_group_header.group_tags + ',';
 		text = text + export_group_header.group_type +',';
 		text = text + export_group_header.group_visible + ',';
-		text = text + export_group_header.group_user_count + '\n';
+		text = text + export_group_header.source + ',';
+        text = text + export_group_header.group_user_count + '\n';
 		
 	var blob = new Blob([text],{type: "text/plain;charset=utf-8"});
 	if(blob){
@@ -2012,25 +2050,31 @@ function createGroupAndAddUser(groupInfo,total){
 		}
 		else{
 			for(var index = 1 ; index < user.length; index++){
-				var userID = getUserID(user[index]);
+				var userID = getUserID(user[index][0],user[index][1]);
 				if(userID != null){
-					var completeUrl = String.format(url_templates.group_add_user,data.group_id,userID,local_data.token);
+					var completeUrl = url_templates.group_user.add(data.id,userID,local_data.token);
 					request(completeUrl,"","post",after_add);
 				}
 			}
 		}
 	}
 	
-	var form = JSON.stringify({
-		'group_name' : group[0],
-		'description' : group[1], 
+	var form = {
+		'name' : group[0],
+		'intro' : group[1], 
 		'tags' : group[2],
-		'type' : group[3],
-		'visible_to_search' : groupVisibleToSearch(group[4])
-	});
-	var ownerID = getUserID(user[0]);
+		'type' : {
+            name: group[3],
+            display_value: GROUP_TYPE[group[3]]
+        },
+		'is_visible' : groupVisibleToSearch(group[4])
+	};
+    if(isValid(group[5]) && Trim(group[5]) != '')
+        form['source'] = group[5];
+    form = JSON.stringify(form);
+	var ownerID = getUserID(user[0][0],user[0][1]);
 	if(ownerID != null){
-		var completeUrl = String.format(url_templates.group_establish,ownerID,local_data.token);
+		var completeUrl = url_templates.group.create(local_data.token,ownerID);
 		request(completeUrl,form,"post",after_create);
 	}
 }
@@ -2073,7 +2117,7 @@ function groupDataArrange(fileArray){
 	for(index = 1,pos = 0;index < fileArray.length ;pos++,index++){
 		resultArray[pos] = new Object();
 		resultArray[pos].group = fileArray[index];
-		resultArray[pos].group[2] = fileArray[index][2].split('/');
+		resultArray[pos].group[2] = fileArray[index][2].split('/').join(',');
 		var length = fileArray[index].length;
 		var countStr = fileArray[index][length - 1];
 		if(countStr != '*'){
@@ -2088,20 +2132,24 @@ function groupDataArrange(fileArray){
 	return resultArray;
 }
 
-function getUserID(userName){
+function getUserID(userName,source){
 	var userID;
 	function after_search(data,status){
 		if(status == 'error'){
 		}
 		else{
-			if(data.count > 0)
-				userID = data.users[0].user_id;
-			else
-				userID = null;
-		}
+		    userID = data.id;
+        }
 	}
-	var completeUrl = String.format(url_templates.user_search,userName,0,1,local_data.token);
-	requestSync(completeUrl,"","get",after_search);
+    var form = {};
+    if(isValid(userName))
+        form['name'] = userName;
+    if(isValid(source))
+        form['source'] = source;
+
+    var form = JSON.stringify(form);
+	var completeUrl = url_templates.user.find(local_data.token);
+	requestSync(completeUrl,form,"post",after_search);
 	return userID;
 }
 
@@ -2157,13 +2205,16 @@ function registerUser(dataArray){
 		$('#import_result_label .load-label-error').text(error);
 	}
 	for(var index =1 ; index <= total ; index++){
-		var form = JSON.stringify({
-			'user_name' : dataArray[index][0],
-			'email' : dataArray[index][3],
+        var form = {
+			'name' : dataArray[index][0],
+			'email' : dataArray[index][4],
 			'display_name' : dataArray[index][1]
-		});
+		};
+        if(isValid(dataArray[index][3]) && Trim(dataArray[index][3]) != '')
+            form['source'] = Trim(dataArray[index][3]);
+        var form = JSON.stringify(form);
 		var password = SHA256_hash(dataArray[index][2]);
-		var completeUrl = String.format(url_templates.user_register_and_activate,password,local_data.token);
+        var completeUrl = url_templates.user.create(password,local_data.token);
 		request(completeUrl,form,"post",after_register);
 	}
 }
@@ -2202,16 +2253,18 @@ function exportUser(){
 			var dataHeaderVal = [];
 			dataHeaderVal[0] = export_user_header.user_name;
 			dataHeaderVal[1] = export_user_header.display_name;
-			dataHeaderVal[2] = export_user_header.email;
-			dataHeaderVal[3] = export_user_header.groups_can_own;
+            dataHeaderVal[2] = export_user_header.source;
+			dataHeaderVal[3] = export_user_header.email;
+			dataHeaderVal[4] = export_user_header.groups_can_own;
 			
-			for(var index = 0 ; index < data.count ; index++){
-				var user = data.users[index];
+			for(var index = 0 ; index < data.entries.length ; index++){
+				var user = data.entries[index];
 				dataVal[index] = [];
-				dataVal[index][0] = user.user_name;
-				dataVal[index][1] = user.display_name;
-				dataVal[index][2] = user.email;
-				dataVal[index][3] = user.groups_can_own;
+				dataVal[index][0] = user.name;
+				dataVal[index][1] = String.denoise(user.display_name);
+				dataVal[index][2] = user.source;
+                dataVal[index][3] = user.email;
+				dataVal[index][4] = user.groups_can_own;
 			}
 			$('#export_data_total').val(data.total);
 			dataProgressInit('export',data.total);
@@ -2219,7 +2272,7 @@ function exportUser(){
 			createTable('data_export_table',dataVal);
 		}
 	}
-	var completeUrl = String.format(url_templates.user_list,0,pageSize,local_data.token);
+	var completeUrl = url_templates.user.list(local_data.token,0,pageSize);
 	request(completeUrl,"","get",after_list);
 }
 
@@ -2238,21 +2291,16 @@ function exportGroup(){
 			dataHeaderVal[1] = export_group_header.description;
 			dataHeaderVal[2] = export_group_header.group_tags;
 			dataHeaderVal[3] = export_group_header.group_type;
+            dataHeaderVal[4] = export_group_header.source;
 			
-			for(var index = 0 ; index < data.count ; index++){
-				var group = data.groups[index];
+			for(var index = 0 ; index < data.entries.length ; index++){
+				var group = data.entries[index];
 				dataVal[index] = [];
-				dataVal[index][0] = stringThumbnail(group.group_name);
-				dataVal[index][1] = stringThumbnail(group.description,30);
-				var tags = "";
-				if(group.tags.length > 0){
-					tags = group.tags[0];
-					for(var tagIndex = 1 ; tagIndex < group.tags.length ; tagIndex ++){
-						tags = tags + ',' + group.tags[tagIndex];
-					}
-				}
-				dataVal[index][2] = tags;
-				dataVal[index][3] = group.type_str;
+				dataVal[index][0] = stringThumbnail(group.name);
+				dataVal[index][1] = stringThumbnail(String.denoise(group.intro),30);
+				dataVal[index][2] = String.denoise(group.tags);
+				dataVal[index][3] = group.type.display_value;
+                dataVal[index][4] = group.source;
 			}
 			$('#export_data_total').val(data.total);
 			dataProgressInit('export',data.total);
@@ -2260,7 +2308,7 @@ function exportGroup(){
 			createTable('data_export_table',dataVal);
 		}
 	}
-	var completeUrl = String.format(url_templates.group_list,0,pageSize,local_data.token);
+	var completeUrl = url_templates.group.list(local_data.token,0,pageSize);
 	request(completeUrl,"","get",after_list);
 }
 
@@ -2287,10 +2335,11 @@ function exportUserExec(){
 			error = error + 1;
 		}
 		else{
-			for(var index = 0 ; index < data.count ; index++){
-				var user = data.users[index];
-				text = text + user.user_name + ",";
-				text = text + user.display_name + ",";
+			for(var index = 0 ; index < data.entries.length ; index++){
+				var user = data.entries[index];
+				text = text + user.name + ",";
+				text = text + String.denoise(user.display_name) + ",";
+                text = text + user.source + ",";
 				text = text + user.email + ",";
 				text = text + user.groups_can_own + "\n";
 				success = success + 1;
@@ -2309,11 +2358,11 @@ function exportUserExec(){
 	
 	var times = total / pageSize;
 	for(var i = 0 ; i < times ; i++){
-		var completeUrl = String.format(url_templates.user_list,i*pageSize,pageSize,local_data.token);
+		var completeUrl = url_templates.user.list(local_data.token,i*pageSize,pageSize);
 		request(completeUrl,"","get",after_list);
 	}
 	if(times * pageSize < total){
-		var completeUrl = String.format(url_templates.user_list,(times*pageSize),(total - times * pageSize),local_data.token);
+		var completeUrl = url_templates.user.list(local_data_token,(times*pageSize),(total - times * pageSize));
 		request(completeUrl,"","get",after_list);
 	}
 }
@@ -2328,20 +2377,13 @@ function exportGroupExec(){
 			error = error + 1;	
 		}
 		else{
-			for(var index = 0 ; index < data.count ; index++){
-				var group = data.groups[index];
-				var tags = "";
-				if(group.tags.length > 0){
-					tags = group.tags[0];
-					for(var tagIndex = 1 ; tagIndex < group.tags.length ; tagIndex ++){
-						tags = tags + '-' + group.tags[tagIndex];
-					}
-				}
-				
-				text = text + group.group_name + ",";
-				text = text + group.description + ",";
-				text = text + tags + ",";
-				text = text + group.type_str + "\n";
+			for(var index = 0 ; index < data.entries.length ; index++){
+				var group = data.entries[index];
+				text = text + group.name + ",";
+				text = text + group.intro + ",";
+				text = text + group.tags + ",";
+				text = text + group.type.display_value + ",";
+                text = text + group.source + "\n";
 				success = success + 1;
 				dataProgressExec('export',success,total);
 			}
@@ -2358,11 +2400,11 @@ function exportGroupExec(){
 	
 	var times = total / pageSize;
 	for(var i = 0 ; i < times ; i++){
-		var completeUrl = String.format(url_templates.group_list,i*pageSize,pageSize,local_data.token);
+		var completeUrl = url_templates.group.list(local_data.token,i*pageSize,pageSize);
 		request(completeUrl,"","get",after_list);
 	}
 	if(times * pageSize < total){
-		var completeUrl = String.format(url_templates.group_list,(times*pageSize),(total - times * pageSize),local_data.token);
+		var completeUrl = url_templates.group.list(local_data.token,(times*pageSize),(total - times * pageSize));
 		request(completeUrl,"","get",after_list);
 	}
 }
@@ -2379,7 +2421,8 @@ function writeToFile(text){
 
 //Information
 function listInformation(){
-	getRealTimeData();
+	//TODO
+    getRealTimeData();
 	getTopData();
 	getTrendData();
 }
@@ -2397,48 +2440,49 @@ function getTopData(){
 			};
 		}
 		$('#file_type_chart').highcharts(genBarOptions("文件类型统计Top10","百分比(%)","百分比",extensions));
-		
+        
 		var userGroups = [];
 		for(var index = 0 ; index < data.top_user_groups.length ; index++){
 			userGroups[index] = {
 				name : data.top_user_groups[index].name,
-				value: data.top_user_groups[index].group_stat_info.user_count
+				value: data.top_user_groups[index].user_count
 			};
 		}
 		$('#group_user_chart').highcharts(genBarOptions("人数最多的群组Top10","人数(位)","人数",userGroups));
-
+        
 		var fileGroups = [];
 		for(var index = 0 ; index < data.top_file_groups.length ; index++){
 			fileGroups[index] = {
 				name : data.top_file_groups[index].name,
-				value: data.top_file_groups[index].group_stat_info.file_count
+				value: data.top_file_groups[index].root.file_count
 			};
 		}
 		$('#group_file_chart').highcharts(genBarOptions("文件数量最多的群组Top10","文件数(个)","文件数",fileGroups));
-
-		var sizeGroups = [];
+        
+        var sizeGroups = [];
 		for(var index = 0; index < data.top_size_groups.length ; index++){
-			var size = data.top_size_groups[index].group_stat_info.used_bytes / (1024 * 1024 * 1024);
+			var size = data.top_size_groups[index].root.used.bytes / (1024 * 1024 * 1024);
 			size = parseFloat(Number(size).toFixed(2));
 			sizeGroups[index] = {
 				name : data.top_size_groups[index].name,
 				value: size
 			}
-		}
+        }
 		$('#group_usage_chart').highcharts(genBarOptions("空间使用量最多的群组Top10","使用量(GB)","使用量",sizeGroups));
 	}
-	
-	var completeUrl = String.format(url_templates.top,topLimit,local_data.token);
-	request(completeUrl,"","get",after_get);
+    
+    var completeUrl = url_templates.statistics.top(local_data.token,topLimit);
+    request(completeUrl,"","get",after_get);
 }
 
 function getRealTimeData(){
-	getRealTimeCount();
+	//TODO
+    getRealTimeCount();
 	getSummaryCount();
 }
 
 function getRealTimeCount(){
-	var completeUrl = String.format(url_templates.real_time,local_data.token);
+	var completeUrl = url_templates.statistics.realTime(local_data.token);
 	request(completeUrl,"","get",function(data,status){
 		if(status == "success"){
 			$('#info_manage').find('.userNum').text(data.user_count);
@@ -2449,27 +2493,24 @@ function getRealTimeCount(){
 }
 
 function getSummaryCount(){
-	var completeUrl = String.format(url_templates.summary,+new Date(),local_data.token);
+	var completeUrl = url_templates.statistics.summary(local_data.token,+new Date());
 	request(completeUrl,"","get",function(data,status){
 		if(status == "success"){
-			var extentsUrl = url_templates.spaceUsage;
-			$.get(
-				extentsUrl,
-				function(statsData){
-					var usageInfo = parseSize(data.bytes,statsData);
+			var spaceUrl = url_templates.consts.system_space(local_data.token);
+            request(spaceUrl,"","get",function(root,status){
+				if(status == 'success'){	
+                    var usageInfo = parseSize(data.bytes,root.quota);
 					var percent = usageInfo.used + "/" + usageInfo.quota;
 					$('#info_manage').find('.bar').css("width",usageInfo.percent);
 					$('#info_manage').find('.percent').text(percent);
-				},
-				'json'
-			);
-			$('#info_manage').find('.fileNum').text(data.file_count);
+				}
+			});
+            $('#info_manage').find('.fileNum').text(data.file_count);
 		}
 	});
 }
 
 function parseSize(size,quota){
-	var totalVolume = parseInt(quota) * 1024 * 1024 * 1024;
 	var usage = size;
 	if(usage <= 1024)
         usage += " B";
@@ -2494,13 +2535,13 @@ function parseSize(size,quota){
 	
 	return {
 		used : usage,
-		quota: quota + " GB",
-		percent: Number(size / totalVolume * 100).toFixed(2) + "%"
+		quota: quota.display_value,
+		percent: Number(size / quota.bytes * 100).toFixed(2) + "%"
 	};
 }
 
 function getTrendData(){
-	var completeUrl = String.format(url_templates.trend,local_data.token);
+	var completeUrl = url_templates.statistics.trend(local_data.token);
 	request(completeUrl,"","get",function(data,status){
 		if(status == "error"){
 			return;
@@ -2803,7 +2844,7 @@ function noticeDeleteManage(){
         });
         ids['count'] = $checkedList.length;
         //Delete notice
-        var completeUrl = url_templates.notice_del;
+        var completeUrl = url_templates.notice.del();
         $.post(completeUrl,ids,function(data,status){
             if(status == 'success'){     
                 listNotice();
@@ -2902,7 +2943,7 @@ function noticeEditorExec(type){
         'summary': $('#noticeSummary').val(),
         'cover': $('#notice_image_preview').attr('src')
     };
-    var completeUrl = url_templates.notice_save;
+    var completeUrl = url_templates.notice.save();
     $.post(completeUrl,data,function(result,status){
         if(status == 'success'){
             alert('操作成功');
@@ -2929,7 +2970,7 @@ function noticeUpdateExec(type){
         'summary': $('#noticeSummary').val(),
         'cover': $('#notice_image_preview').attr('src')
     };
-    var completeUrl = String.format(url_templates.notice_detail,$('#noticeID').val());
+    var completeUrl = url_templates.notice.get($('#noticeID').val());
 
     $.post(completeUrl,data,function(result,status){
         if(status == 'success'){
@@ -2949,7 +2990,7 @@ function listNotice(){
     var currentPageNumber = parseInt($('#notice_page_current_number').val());
     var offset = (currentPageNumber - 1)*pageSize;
 
-    var completeUrl = String.format(url_templates.notice_list,offset,pageSize);
+    var completeUrl = url_templates.notice.list(offset,pageSize);
     $.get(completeUrl,function(data,status){
         if(status=="success"){
             if(currentPageNumber == 1){
@@ -2975,7 +3016,7 @@ function listNotice(){
 }
 
 function noticeDetail(id){
-    var completeUrl = String.format(url_templates.notice_detail,id);
+    var completeUrl = url_templates.notice.get(id);
     $('.notice-old').show();
     $('.notice-new').hide();
     noticeSlideForward();
@@ -3067,7 +3108,7 @@ function clientAddManage(){
     $('#client_upload_file').fileupload({
         sequentialUploads: true,
         add: function(e, data){
-            data.url = String.format(url_templates.client_upload);
+            data.url = url_templates.client.upload();
             var jqXHR;
             $('#client_upload_submit').on('click',function(ev){
                 $('#client_time').val((new Date()).toLocaleString()); 
@@ -3097,7 +3138,7 @@ function clientAddManage(){
 
 function listClients(){
     clearTable('client_table');
-    var completeUrl = String.format(url_templates.client_list);
+    var completeUrl = url_templates.client.list();
     $.get(completeUrl,function(data,status){
         if(status == 'success'){
             var dataVal = [];
@@ -3142,7 +3183,7 @@ function changeClientState(changeToState,currentTR){
     form["id"] = clientID;
     form["status"] = changeToState;
 	
-	var completeUrl = String.format(url_templates.client_update);
+	var completeUrl = url_templates.client.update();
     $.post(completeUrl,form,after_update);
 }
 
@@ -3167,7 +3208,7 @@ function clientDeleteManage(){
         });
         ids['count'] = $checkedList.length;
         //Delete notice
-        var completeUrl = url_templates.client_del;
+        var completeUrl = url_templates.client.del();
         $.post(completeUrl,ids,function(data,status){
             if(status == 'success'){     
                 listClients();

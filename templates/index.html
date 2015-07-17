@@ -29,6 +29,7 @@
     <script src="../static/js/editor/bootstrap-wysiwyg.js" type="text/javascript"></script>
     <script src="../static/js/common.js" type="text/javascript"></script>
     <script src="../static/js/configuration.js" type="text/javascript"></script>
+    <script src="../static/js/webSDK.js" type="text/javascript"></script>
     <script src="../static/js/admin.js" type="text/javascript"></script>
     <!--[if lte IE 6]>    
     	<link rel="stylesheet" type="text/css" href="../static/css/bootstrap-ie6.css">
@@ -161,6 +162,7 @@
                                 <th>邮箱</th>
                                 <th>注册时间</th>
                                 <th>可用群组数</th>
+                                <th>来源</th>
                                 <th>密码</th>
                                 <th>状态</th>
                             </tr>
@@ -201,6 +203,7 @@
                             <div class="input-append">
                                 <input type="text" class="span8 search-query" placeholder="请输入用户名" id="quota_user_search_name" onKeyDown="keyDown('quota_user_search')">
                                 <input type="hidden" id="quota_user_id">
+                                <input type="hidden" id="quota_user_root_id">
                                 <button type="button" class="btn" id="quota_user_search">搜索</button>
                             </div>
                         </div>
@@ -288,6 +291,7 @@
                             <div class="input-append">
                                 <input type="text" class="span8 search-query" placeholder="请输入群组名" id="quota_group_search_name" onKeyDown="keyDown('quota_group_search')">
                                 <input type="hidden" id="quota_group_id">
+                                <input type="hidden" id="quota_group_root_id">
                                 <button type="button" class="btn" id="quota_group_search">搜索</button>
                             </div>
                         </div>
@@ -433,6 +437,8 @@
                                         <th>类型</th>
                                         <th>搜索</th>
                                         <th>创建时间</th>
+                                        <th>来源</th>
+                                        <th>推荐</th>
                                         <th>状态</th>
                                     </tr>
                                 </thead>
@@ -475,6 +481,7 @@
                                         <th>昵称</th>
                                         <th>邮箱</th>
                                         <th>角色</th>
+                                        <th>来源</th>
                                     </tr>
                                 </thead>
                                 <tbody>

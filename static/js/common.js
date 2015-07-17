@@ -59,6 +59,13 @@ function stringThumbnail(str,maxLength){
 		return str;
 }
 
+String.denoise = function(str){
+    if(str === null || typeof str === 'undefined')
+        return '';
+    else
+        return str;
+}
+
 function minVal(first,second){
 	return first < second ? first : second;
 }
