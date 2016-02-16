@@ -8,6 +8,7 @@ import time
 from config import *
 import qr_mod
 import db_conn
+import qrcode
 
 render = web.template.render("templates")
 
@@ -189,6 +190,23 @@ class ClientUpdate:
         db = db_conn.DBConn()
         sql = "UPDATE client SET status=%s where id=%s"
         db.update(sql,(data['status'],data['id']))
+        
+        # create android qrcode
+        sql = "SELECT name,platform FROM client WHERE id=%s"
+        rows = db.select(sql,(data['id'],))
+
+        if rows[0][1] == 'android' and int(data['status']) == 1:
+            qr = qrcode.QRCode(
+                version = 2,
+                error_correction = qrcode.constants.ERROR_CORRECT_L,
+                box_size = 10,
+                border = 1
+            )
+            qr.add_data(dl_base_path + rows[0][0])
+            qr.make(fit=True)
+            img = qr.make_image()
+            img.save(qr_android_path)
+            os.system('chmod +r '+qr_android_path)
         return 'success'
 
 app = web.application(urls, globals())

@@ -32,19 +32,29 @@ function login(){
 			local_data.token = data.token;
 			local_data.device = data.id;
             local_data.userid = data.user_id;
-			var rememberMe = document.getElementById('remember_me').checked;
-			if(rememberMe){
-				localStorage.setItem("logging",true);
-			}
-			else{
-				sessionStorage.setItem("logging",true);
-			}
-			localStorage.setItem("data",JSON.stringify(local_data));
-			self.location.href="/home";
+            
+            var verifyUrl = url_templates.user.get(data.user_id,data.token);
+            request(verifyUrl,"","get",function(user,status){
+                if(status == 'success' && user.role.name == 'root'){
+			        var rememberMe = document.getElementById('remember_me').checked;
+			        if(rememberMe){
+				        localStorage.setItem("logging",true);
+			        }
+			        else{
+				        sessionStorage.setItem("logging",true);
+			        }
+			        localStorage.setItem("data",JSON.stringify(local_data));
+                
+                    self.location.href="/home";
+                }
+                else{
+                    alert('您不无权登录');
+                }
+            });
 		}
 	}
 	
-	var completeUrl = url_templates.auth.signIn(encodeURIComponent(username),encodeURIComponent(password));
+	var completeUrl = url_templates.auth.signIn(username,password);
 	request(completeUrl,'','post',after_login);
 }
 

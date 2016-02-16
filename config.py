@@ -1,15 +1,16 @@
 # this is the config file
 
 # location to store uploaded client packages
+dl_base_path = 'http://azy-beta.meepotech.com:808/upload/'
+qr_android_path = '/var/www/new-website/upload/android-qr-code.png'
 upload_dir = '/var/www/new-website/upload/'
-qr_path = '/var/www/campus-website/upload/qr_android.png'
 download_root_url = 'http://test.meepotech.com/upload/'
 # domain or IP which the redis sever run on
 #redis_addr = '0.meepotech.com'
 
 # platforms that we support(client)
-platform_list = ['win32', 'win64', 'linux32', 'linux64',
-                 'mac', 'android', 'iphone']
+platform_list = ['windows', 'linux32', 'linux64',
+                 'mac', 'android', 'iphone', 'ipad']
 
 # supported os version
 adaptation = {

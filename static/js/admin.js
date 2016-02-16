@@ -176,7 +176,10 @@ function clean_environment(){
 	
 	//clean page number
 	$('#user_page_select_flag').val(0);
-	$('#group_page_select_flag').val(0);
+	$('#user_page_current_number').val(1);
+
+    $('#group_page_select_flag').val(0);
+    $('#group_page_current_number').val(1);
 }
 
 function switchItem(itemName){
@@ -196,13 +199,8 @@ function switchItem(itemName){
 
 function logout(){
 	function after_logout(data,status){
-		if(status == 'error'){
-			alert('无法注销');
-		}
-		else{
-			flush_local_data();
-			window.location.href='/';
-		}
+	    flush_local_data();
+		window.location.href='/';
 	}
 	var completeUrl = url_templates.auth.signOut(local_data.token);
 	request(completeUrl,"","post",after_logout);
@@ -252,7 +250,8 @@ function resetPasswordSubmit(){
 	
 	function after_reset(data,status){
 		if(status == "error"){
-		}
+		    check_error(data);
+        }
 		else{
 			alert("密码修改成功，请重新登录！");
 			flush_local_data();
@@ -287,7 +286,8 @@ function listUser(){
 	
 	function after_list(data,status){
 		if(status == 'error'){
-		}
+		    check_error(data);
+        }
 		else{
 			var dataVal = [];
 			var saveDataVal = [];
@@ -299,7 +299,7 @@ function listUser(){
 			}
 			for(var index = 0,pos = 0 ; index < data.entries.length ; index++){
 			    var user = data.entries[index];
-				if(user.id != "00000000-0000-0000-0000-000000000000"){
+				if(user.role.name != 'root'){
 					//Construct data
 					dataVal[pos] = [];
 					dataVal[pos][0] = offset+pos+1;
@@ -323,6 +323,7 @@ function listUser(){
 					saveDataVal[pos][1] = user.name;
 					saveDataVal[pos][2] = user.role.name;
 					saveDataVal[pos][3] = user.groups_can_own;
+					saveDataVal[pos][4] = user.source;
 					pos = pos + 1;
 				}
 			}
@@ -341,7 +342,8 @@ function listGroup(){
 	
 	function after_list(data,status){
 		if(status == "error"){
-		}
+		    check_error(data);
+        }
 		else{
 			var dataVal = [];
 			var saveDataVal = [];
@@ -404,7 +406,7 @@ function listGroupUser(){
 	var offset = (currentPageNumber-1)*pageSize;
 	function after_list(data,status){
 		if(status == "error"){
-			
+			check_error(data);
 		}
 		else{
 			var dataVal = [];
@@ -425,6 +427,12 @@ function listGroupUser(){
 				dataVal[index][4] = user.email;
 				dataVal[index][5] = user.relation.role.display_value;
                 dataVal[index][6] = user.source;
+			    if(!user.relation.is_blocked){
+					dataVal[index][7] = '<a style="color:#0088cc" onClick="changeGroupUserState(\'0\',this,7)">已启用</a>';
+				}
+				else{
+					dataVal[index][7] = '<a style="color:#ff0000" onClick="changeGroupUserState(\'1\',this,7)">已禁用</a>';
+				}
 				
 				saveDataVal[index] = [];
 				saveDataVal[index][0] = groupID;
@@ -453,7 +461,7 @@ function changeUserState(currentState,currentTR,tdIndex){
 	
 	function after_update(data,status){
 		if(status == 'error'){
-			
+			check_error(data);
 		}
 		else{
 			if(currentState == 0){
@@ -483,7 +491,8 @@ function quotaGroupSearch(){
 	
 	function after_search(data,status){
 		if(status == 'error'){
-		}
+		    check_error(data);
+        }
 		else{
 			if(data.total == 0){
 			}
@@ -519,11 +528,12 @@ function quotaGroupSubmit(){
 	
 	function after_update(data,status){
 		if(status == 'error'){
-		}
+		    check_error(data);
+        }
 		else{
 			$('#quota_group_success_prompt').css('display','block');
 			var usage = parseInt($('#quota_group_usage_number').val());
-			usage = usage / group_quota * 100;
+			usage = usage / data.quota.bytes * 100;
 			usage = Number(usage).toFixed(2);
 			$('#quota_group_usage').css('width',usage+"%");
 			$('#quota_group_usage_str').text(usage+"%");
@@ -538,7 +548,7 @@ function quotaGroupSubmit(){
 	else{
 		$('#quota_group_quota_controls').removeClass('error');
 		group_quota = group_quota + 'GB';
-		var completeUrl = url_templates.root.setQuota(group_id,group_quota,local_data.token);
+		var completeUrl = url_templates.root.setQuota(root_id,group_quota,local_data.token);
 		request(completeUrl,"","post",after_update);
 	}
 }
@@ -567,8 +577,8 @@ function groupQuotaChange(groupID){
 	
 	function after_getInfo(data,status){
 		if(status == 'error'){
-			
-		}
+		    check_error(data);
+        }
 		else{
 			$('#quota_group_id').val(data.id);
             $('#quota_group_root_id').val(data.root_id);
@@ -608,7 +618,8 @@ function quotaUserSearch(){
 	
 	function after_search(data,status){
 		if(status == 'error'){
-		}
+		    check_error(data);
+        }
 		else{
 			if(data.total == 0){
 			}
@@ -644,7 +655,8 @@ function quotaUserSubmit(){
 	
 	function after_update(data,status){
 		if(status == 'error'){
-		}
+		    check_error(data);
+        }
 		else{
 			$('#quota_user_success_prompt').css('display','block');
 			var usage = parseInt($('#quota_user_usage_number').val());
@@ -687,8 +699,8 @@ function userQuotaChange(userID){
 	$('#quota_user_slide').animate({marginLeft:'-1158px'},500);
 	function after_getInfo(data,status){
 		if(status == 'error'){
-			
-		}
+		    check_error(data);
+        }
 		else{
 			$('#quota_user_id').val(data.id);
             $('#quota_user_root_id').val(data.root_id);
@@ -779,8 +791,11 @@ function userEdit(){
 			var userID = element.value;
 			var saveData = JSON.parse(localStorage.getItem("userTableData"));
 			var groupCanOwn = saveData[pos][3];
+            var userSource = saveData[pos][4];
 			var groupCanOwnHTML = '<div class="control-group"><input type="text" class="span1" value="'+groupCanOwn+'"></div>';
+            var userSourceHTML = '<div class="control-group"><input type="text" class="span1" value="'+userSource+'"></div>';
 			$('#user_table > tbody tr:eq('+pos+') td:eq(6)').html(groupCanOwnHTML);
+            $('#user_table > tbody tr:eq('+pos+') td:eq(7)').html(userSourceHTML);
         });
 		activateEdit('user');
 	}
@@ -797,6 +812,7 @@ function userSave(){
 			var eachErrorFlag = false;
 			var groupCanOwn = $('#user_table > tbody tr:eq('+pos+') td:eq(6) input[type="text"]').val();
 			var userID = $('#user_table > tbody tr:eq('+pos+') td:eq(1) input[type="checkbox"]').val();
+            var userSource = $('#user_table > tbody tr:eq('+pos+') td:eq(7) input[type="text"]').val();
 			//Check data format
 			if(!valid_int.test(groupCanOwn)){
 				eachErrorFlag = true;
@@ -808,12 +824,13 @@ function userSave(){
 			}
 			else{
 				$('#user_table > tbody tr:eq('+pos+') td:eq(6)').html(groupCanOwn);
+				$('#user_table > tbody tr:eq('+pos+') td:eq(7)').html(userSource);
 				//update localStorage
 				var saveData = JSON.parse(localStorage.getItem('userTableData'));
 				saveData[pos][3] = groupCanOwn;
 				localStorage.setItem('userTableData',JSON.stringify(saveData));
 				element.checked = false;
-				updateUserInfo(userID,groupCanOwn);
+				updateUserInfo(userID,groupCanOwn,userSource);
 			}
 		});
 		
@@ -836,12 +853,29 @@ function userCancelManage(){
 	if(typeof savedData != 'undefined' && savedData != null){
 		for(var pos = 0 ; pos < savedData.length ; pos++){
 			$('#user_table > tbody tr:eq('+pos+') td:eq(6)').html(savedData[pos][3]);
+			$('#user_table > tbody tr:eq('+pos+') td:eq(7)').html(savedData[pos][4]);
 		}
 		deactivateEdit('user');
 	}
 }
 
 function userDeleteManage(){
+    if(!confirm("确定要删除这些用户吗?"))
+        return ;
+	var $checkedList = $('#user_table >tbody input:checkbox:checked');
+	if($checkedList.length == 0){
+	}
+	else{
+        var count = 0, total = $checkedList.length;
+		$checkedList.each(function(index, element) {
+			var userID = element.value;
+            var completeUrl = url_templates.user.del(userID,local_data.token);
+            request(completeUrl,"","delete",function(data,status){
+                if(total == ++count)
+                    listUser();
+            });
+        });
+	}
 }
 
 function userCheckManage(){
@@ -857,13 +891,15 @@ function userCheckManage(){
 	}
 }
 
-function updateUserInfo(userID,groupCanOwn){
+function updateUserInfo(userID,groupCanOwn,userSource){
 	var form = JSON.stringify({
+        "source" : userSource,
 		"groups_can_own" : groupCanOwn
 	});
 	function after_update(data,status){
 		if(status == 'error'){
-		}
+		    check_error(data);
+        }
 		else{
 		}
 	}
@@ -877,7 +913,8 @@ function resetPassword(userID){
 	if(result == true){
 		function after_update(data,status){
 			if(status == 'error'){
-			}
+			    check_error(data);
+            }
 			else{
 				alert('密码重置成功');
 			}
@@ -899,13 +936,18 @@ function userSearchSubmit(){
 
 function userSearch(){
 	var userName = $('#user_search_name').val();
-	clearTable('user_table');
+	if(Trim(userName) == ''){
+        userManage();
+        return;
+    }
+    clearTable('user_table');
 	var currentPageNumber = parseInt($('#user_page_current_number').val());
 	var offset = (currentPageNumber-1)*pageSize;
 	
 	function after_search(data,status){
 		if(status == 'error'){
-		}
+		    check_error(data);
+        }
 		else{
 			var dataVal = [];
 			var saveDataVal = [];
@@ -918,7 +960,7 @@ function userSearch(){
 			
 			for(var index = 0,pos = 0 ; index < data.entries.length ; index++){
                 var user = data.entries[index];
-				if(user.id != "00000000-0000-0000-0000-000000000000"){
+				if(user.role.name != 'root'){
 					//Construct data
 					dataVal[pos] = [];
 					dataVal[pos][0] = pos+1;
@@ -942,6 +984,7 @@ function userSearch(){
 					saveDataVal[pos][1] = user.name;
 					saveDataVal[pos][2] = user.is_blokced;
 					saveDataVal[pos][3] = user.groups_can_own;
+                    saveDataVal[pos][4] = user.source;
 					pos = pos + 1;
 				}
 			}
@@ -1059,25 +1102,41 @@ function groupPageLast(){
 //Group user page switch
 function groupUserPageFirst(){
 	if(pageFirst('group_user')){
-		listGroupUser();
+		var val = $('#group_user_page_select_flag').val();
+        if(val == 0)
+            listGroupUser();
+        else
+            groupUserSearchSubmit();
 	}
 }
 
 function groupUserPageRight(){
 	if(pageRight('group_user')){
-		listGroupUser();
+        var val = $('#group_user_page_select_flag').val();
+		if(val == 0)
+            listGroupUser();
+        else
+            groupUserSearchSubmit();
 	}
 }
 
 function groupUserPageLeft(){
 	if(pageLeft('group_user')){
-		listGroupUser();
+        var val = $('#group_user_page_select_flag').val();
+        if(val == 0)
+		    listGroupUser();
+        else
+            groupUserSearchSubmit();
 	}
 }
 
 function groupUserPageLast(){
 	if(pageLast('group_user')){
-		listGroupUser();
+        var val = $('#group_user_page_select_flag').val();
+        if(val == 0)
+		    listGroupUser();
+        else
+            groupUserSearchSubmit();
 	}
 }
 
@@ -1224,13 +1283,18 @@ function groupSearchSubmit(){
 
 function groupSearch(){
 	var groupName = $('#group_search_name').val();
-	clearTable('group_table');
+	if(Trim(groupName) == ''){
+        groupManage();
+        return;
+    }
+    clearTable('group_table');
 	var currentPageNumber = parseInt($('#group_page_current_number').val());
 	var offset = (currentPageNumber-1)*pageSize;
 	
 	function after_search(data,status){
 		if(status == "error"){
-		}
+		   check_error(data);
+        }
 		else{
 			var dataVal = [];
 			var saveDataVal = [];
@@ -1295,7 +1359,8 @@ function changeGroupPromoted(currentState,currentTR){
 	
 	function after_set(data,status){
 		if(status == 'error'){
-		}
+		    check_error(data);
+        }
 		else{
 			if(currentState == 0){
                 tr.cells[9].innerHTML = '<a style="color:#0088cc" onClick="changeGroupPromoted(\'1\',this)">否</a>';
@@ -1321,7 +1386,8 @@ function changeGroupState(currentState,currentTR){
 	
 	function after_update(data,status){
 		if(status == 'error'){
-		}
+		    check_error(data);
+        }
 		else{
 			if(currentState == 0){
 				tr.cells[10].innerHTML = '<a style="color:#ff0000" onClick="changeGroupState(\'1\',this)">已禁用</a>';
@@ -1338,6 +1404,39 @@ function changeGroupState(currentState,currentTR){
 	
 	var completeUrl = url_templates.group.update(groupID,local_data.token);
 	request(completeUrl,form,"post",after_update);
+}
+
+function changeGroupUserState(currentState,currentTR){
+	var tr = currentTR.parentNode.parentNode;
+	var groupID = $('#current_group_id').val();
+    var userID = tr.cells[1].firstChild.value;
+	var isBlocked = false;
+	
+	if(currentState == 0){
+		isBlocked = true;
+	}
+	
+	function after_update(data,status){
+		if(status == 'error'){
+		    check_error(data);
+        }
+		else{
+			if(currentState == 0){
+				tr.cells[7].innerHTML = '<a style="color:#ff0000" onClick="changeGroupUserState(\'1\',this)">已禁用</a>';
+			}
+			else{
+				tr.cells[7].innerHTML = '<a style="color:#0088cc" onClick="changeGroupUserState(\'0\',this)">已启用</a>';
+			}
+		}
+	}
+	
+	var form = JSON.stringify({
+		"is_blocked" : isBlocked
+	});
+	
+	var completeUrl = url_templates.group_user.update(groupID,userID,local_data.token);
+	request(completeUrl,form,"post",after_update);
+
 }
 
 function groupEditManage(){
@@ -1363,7 +1462,8 @@ function groupUserEditManage(){
 function getGroupType(){
 	function after_get(data,status){
 		if(status == 'error'){
-		}
+		    check_error(data);
+        }
 		else{
 			for(var index = 0 ; index < data.length ; index++){
 				GROUP_TYPE[data[index].name] = data[index].display_value;
@@ -1394,7 +1494,8 @@ function createGroupTypeSelect(itemNumber,itemName){
 function getGroupUserPosition(){
 	function after_get(data,status){
 		if(status == 'error'){
-		}
+		    check_error(data);
+        }
 		else{
 			for(var index = 0 ; index < data.length ; index++){
 				USER_POSITION[data[index].name] = data[index].display_value;
@@ -1518,8 +1619,20 @@ function groupSave(){
 }
 
 function groupUserSearchSubmit(){
+    $('#group_user_page_current_number').val(1);
+    $('#group_user_page_select_flag').val(1);
+    groupUserSearch();
+}
+
+function groupUserSearch(){
 	var groupID = $('#current_group_id').val();
-	var query = $('#group_user_search_name').val();
+    var query = $('#group_user_search_name').val();
+	if(Trim(query) == ''){
+        $('#group_user_page_current_number').val(1);
+        $('#group_user_page_select_flag').val(0);
+        listGroupUser();
+        return;
+    }
 	clearTable('group_user_table');
 	var currentPageNumber = 1;
 	var offset = (currentPageNumber-1)*pageSize;
@@ -1542,6 +1655,13 @@ function groupUserSearchSubmit(){
 				dataVal[index][3] = String.denoise(user.display_name);
 				dataVal[index][4] = user.email;
 				dataVal[index][5] = user.relation.role.display_value;
+                dataVal[index][6] = user.source;
+			    if(!user.relation.is_blocked){
+					dataVal[index][7] = '<a style="color:#0088cc" onClick="changeGroupUserState(\'0\',this,7)">已启用</a>';
+				}
+				else{
+					dataVal[index][7] = '<a style="color:#ff0000" onClick="changeGroupUserState(\'1\',this,7)">已禁用</a>';
+				}
 				
 				saveDataVal[index] = [];
 				saveDataVal[index][0] = groupID;
@@ -1580,6 +1700,7 @@ function groupAdduserSearchSubmit(){
 					dataVal[pos][2] = user.email;
 					dataVal[pos][3] = user.created_at.display_value;
 					dataVal[pos][4] = '<a onClick="addUserToAlternativeBox(\''+user.name+'\',\''+user.id+'\')">添加</a>';
+                    pos++;
 				}
 			}
 			createTable('group_adduser_table',dataVal);
@@ -1706,7 +1827,8 @@ function updateGroupInfo(groupID,description,tags,type,type_str,visible){
 	
 	function after_update(data,status){
 		if(status == "error"){
-		}
+		    check_error(data);
+        }
 		else{
 		}
 	}
@@ -1721,7 +1843,8 @@ function updateGroupUserInfo(groupID,userID,position){
 	});
 	function after_update(data,status){
 		if(status == 'error'){
-		}
+		    check_error(data);
+        }
 		else{
 		}
 	}
@@ -1801,7 +1924,9 @@ function groupAlertClose(){
 }
 
 function groupDeleteManage(){
-	var val = $('#group_delete_manage').val();
+	if(!confirm("确定要删除这些信息吗?"))
+        return;
+    var val = $('#group_delete_manage').val();
 	if(val == 0){
 		groupDelete();
 	}
@@ -1826,7 +1951,8 @@ function groupDelete(){
 function disbandGroup(groupID){
 	function after_disband(data,status){
 		if(status == 'error'){ 
-		}
+		    check_error(data);
+        }
 		else{
 			listGroup();
 		}
@@ -1852,7 +1978,8 @@ function groupUserDelete(){
 function deleteUserFromGroup(groupID,userID){
 	function after_delete(data,status){
 		if(status == 'error'){
-		}
+		    check_error(data);
+        }
 		else{
 			listGroupUser();
 		}
@@ -2029,7 +2156,8 @@ function createGroupAndAddUser(groupInfo,total){
 	var count = 0;
 	function after_add(data,status){
 		if(status == 'error'){
-		}
+		    check_error(data);
+        }
 		else{
 		}
 		count++;
@@ -2136,7 +2264,8 @@ function getUserID(userName,source){
 	var userID;
 	function after_search(data,status){
 		if(status == 'error'){
-		}
+		    check_error(data);
+        }
 		else{
 		    userID = data.id;
         }
@@ -2196,7 +2325,8 @@ function registerUser(dataArray){
 	function after_register(data,status){
 		if(status == 'error'){
 			error = error + 1;
-		}
+		    check_error(data);
+        }
 		else{
 			success = success + 1;
 		}
@@ -2247,7 +2377,8 @@ function exportUser(){
 	clearTable('data_export_table');
 	function after_list(data,status){
 		if(status == 'error'){
-		}
+		    check_error(data);
+        }
 		else{
 			var dataVal = [];
 			var dataHeaderVal = [];
@@ -2282,7 +2413,7 @@ function exportGroup(){
 	clearTable('data_export_table');
 	function after_list(data,status){
 		if(status == 'error'){
-			
+			check_error(data);
 		}
 		else{
 			var dataVal = [];
@@ -2333,7 +2464,8 @@ function exportUserExec(){
 	function after_list(data,status){
 		if(status == 'error'){
 			error = error + 1;
-		}
+		    check_error(data);
+        }
 		else{
 			for(var index = 0 ; index < data.entries.length ; index++){
 				var user = data.entries[index];
@@ -2375,7 +2507,8 @@ function exportGroupExec(){
 	function after_list(data,status){
 		if(status == 'error'){
 			error = error + 1;	
-		}
+		    check_error(data);
+        }
 		else{
 			for(var index = 0 ; index < data.entries.length ; index++){
 				var group = data.entries[index];
@@ -2430,7 +2563,8 @@ function listInformation(){
 function getTopData(){
 	function after_get(data,status){
 		if(status == "error"){
-			return;
+			check_error(data);
+            return;
 		}
 		var extensions = [];
 		for(var index = 0 ; index < data.top_extensions.length ; index++){
@@ -2489,6 +2623,9 @@ function getRealTimeCount(){
 			$('#info_manage').find('.groupNum').text(data.group_count);
 			$('#info_manage').find('.onlineNum').text(data.token_count);
 		}
+        else if(status == "error"){
+            check_error(data);
+        }
 	});
 }
 
@@ -2507,6 +2644,9 @@ function getSummaryCount(){
 			});
             $('#info_manage').find('.fileNum').text(data.file_count);
 		}
+        else if(status == "error"){
+            check_error(data);
+        }
 	});
 }
 
@@ -2824,7 +2964,7 @@ function noticeListSave(){
             var data = {
                 'pos': pos
             };
-            var completeUrl = String.format(url_templates.notice_detail,id);
+            var completeUrl = url_templates.notice.update(id);
 
             $.post(completeUrl,data,function(result,status){
                 if(status == 'success'){
@@ -2866,6 +3006,8 @@ function noticeSlideBack(){
     listNotice();
     //Clean title and content
     $('#noticeTitle').val('');
+    $('#noticeSummary').val('');
+    $('#notice_image_preview').attr('src','');
     $('#editor').html('');
 }
 

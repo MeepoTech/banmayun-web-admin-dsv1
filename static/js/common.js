@@ -70,6 +70,15 @@ function minVal(first,second){
 	return first < second ? first : second;
 }
 
+function check_error(data){
+    var error_data = eval("(" + data.responseText + ")");
+    
+    if(error_data.code == ERRORCODE.TOKEN_INVALID){
+        sessionStorage.clear();
+        localStorage.clear();
+        self.location.href = "/";
+    }
+}
 function request(url,data,method,callback){
 	$.ajax({
 		url:url + LANG,

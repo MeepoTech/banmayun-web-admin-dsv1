@@ -116,7 +116,7 @@
                     </div>
                 	<div class="pull-right">
                     	<div class="btn-group">
-                            <!--<button class="btn btn-small" id="user_delete_manage">Delete</button>-->
+                            <button class="btn btn-small" id="user_delete_manage">删除</button>
                             <button class="btn btn-small" id="user_edit_manage">编辑</button>
                             <button class="btn btn-small" id="user_cancel_manage">取消</button>
                         </div>
@@ -482,6 +482,7 @@
                                         <th>邮箱</th>
                                         <th>角色</th>
                                         <th>来源</th>
+                                        <th>状态</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -497,6 +498,7 @@
                         		</ul>
                        			<input type="hidden" value="1" id="group_user_page_current_number">
                         		<input type="hidden" value="1" id="group_user_page_total_number">
+                                <input type="hidden" value="0" id="group_user_page_select_flag">
                                 <input type="hidden" value="" id="current_group_id">
                             </div>
                         </div>
@@ -886,12 +888,12 @@
     <footer class="footer">
     	<div class="container-fluid">
             <p><font color="gray">
-                <a href="http://www.meepotech.com/terms">服务条款</a>&nbsp;&nbsp;&nbsp;
-                <a href="http://www.meepotech.com/">公司首页</a>&nbsp;&nbsp;&nbsp;
-                <a href="http://www.meepotech.com/about">关于我们</a>&nbsp;&nbsp;&nbsp;
+                <a href="http://www.meepotech.com/terms" target="_blank">服务条款</a>&nbsp;&nbsp;&nbsp;
+                <a href="http://www.meepotech.com/" target="_blank">>公司首页</a>&nbsp;&nbsp;&nbsp;
+                <a href="http://www.meepotech.com/about" target="_blank">>关于我们</a>&nbsp;&nbsp;&nbsp;
                 <a href="mailto:support@meepotech.com">意见反馈</a>
                 <br><br>
-                &copy; 2013 北京麦谱影随科技有限公司
+                &copy; 2015 北京麦谱影随科技有限公司
             </font></p>
    		</div>
     </footer>
@@ -951,13 +953,13 @@
                     <label class="control-label" for="client_os">应用平台</label>
                     <div class="controls">
                         <select class="form-control" id="client_os" name="platform">
-                            <option>win32</option>
-                            <option>win64</option>
+                            <option>windows</option>
                             <option>linux32</option>
                             <option>linux64</option>
                             <option>mac</option>
                             <option>android</option>
                             <option>iphone</option>
+                            <option>ipad</option>
                         </select>
                     </div>
                 </div>

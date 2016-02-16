@@ -1,7 +1,6 @@
 /*
 	Web sdk: designed by aizhiyuan
 */
-//var domain = config.settings.DOMAIN
 var apiAddress = "http://admin-azy-dsv1.meepotech.com:808/v1";
 var servers = {
 	auth		  : apiAddress + '/auth',
@@ -120,6 +119,10 @@ var url_templates = {
 			var url = servers.users + '/{0}/update?token={1}';
 			return String.format(url,userID,token);
 		},
+		del : function(userID,token){
+			var url = servers.users + '/{0}?token={1}';
+			return String.format(url,userID,token);
+		},
 		verifyEmail : function(userID,token){
 			var url = servers.users + '/{0}/verify_email?token={1}';
 			return String.format(url,userID,token);
@@ -191,12 +194,13 @@ var url_templates = {
 			var url = servers.groups + '/{0}?token={1}';
 			return String.format(url,groupID,token);
 		},
-		list : function(token,offset,limit,type,isActivated,isBlocked){
+		list : function(token,offset,limit,type,isPromoted,isActivated,isBlocked){
 			var url = servers.groups + '?token={0}';
 				url = String.format(url,token);
 			isValid(offset)      ? url += String.format('&offset={0}',offset) : url;
 			isValid(limit)       ? url += String.format('&limit={0}',limit) : url;
 			isValid(type)        ? url += String.format('&type={0}',role) : url;
+            isValid(isPromoted)  ? url += String.format('&is_promoted={0}',isPromoted) : url;
 			isValid(isActivated) ? url += String.format('&is_activated={0}',isActivated) : url;
 			isValid(isBlocked)   ? url += String.format('&is_blocked={0}',isBlocked) : url;
 			return url;
@@ -656,6 +660,11 @@ var url_templates = {
             return url;
         },
         get : function(id){
+            var url = '/notice/{0}';
+                url = String.format(url,id);
+            return url;
+        },
+        update : function(id){
             var url = '/notice/{0}';
                 url = String.format(url,id);
             return url;
