@@ -12,12 +12,27 @@ var servers = {
 	chunked_upload: apiAddress + '/chunked_upload',
 	delta		  : apiAddress + '/delta',
 	search		  : apiAddress + '/search',
+    md5           : apiAddress + '/md5',
 	consts		  : apiAddress + '/consts',
 	statistics	  : apiAddress + '/statistics',
 	top			  : apiAddress + '/top',
 	hot			  : apiAddress + '/hot',
 	suggest		  : apiAddress + '/suggest',
     sso           : apiAddress + '/sso'
+};
+
+var api_sort_type = {
+    "user" : {
+        "default" : "name",
+        "name" : "name",
+        "group_count" : "group_count",
+        "user_status" : "user_status"
+    }
+};
+
+var api_sort_order = {
+    "asc" : "asc",
+    "desc" : "desc"
 };
 
 var url_templates = {
@@ -105,7 +120,7 @@ var url_templates = {
 			var url = servers.users + '/{0}?token={1}';
 			return String.format(url,userID,token);
 		},
-		list : function(token,offset,limit,role,isActivated,isBlocked){
+		list : function(token,offset,limit,role,isActivated,isBlocked,sortType,sortOrder){
 			var url = servers.users + '?token={0}';
 				url = String.format(url,token);
 			isValid(offset)      ? url += String.format('&offset={0}',offset) : url;
@@ -113,6 +128,8 @@ var url_templates = {
 			isValid(role)        ? url += String.format('&role={0}',role) : url;
 			isValid(isActivated) ? url += String.format('&is_activated={0}',isActivated) : url;
 			isValid(isBlocked)   ? url += String.format('&is_blocked={0}',isBlocked) : url;
+            isValid(sortType)    ? url += String.format('&sort_type={0}',sortType) : url;
+            isValid(sortOrder)    ? url += String.format('&sort_order={0}',sortOrder) : url;
 			return url;
 		},
 		update : function(userID,token){
@@ -277,7 +294,15 @@ var url_templates = {
 		setQuota : function(rootID,quota,token){
 			var url = servers.roots + '/{0}/quota?quota={1}&token={2}';
 			return String.format(url,rootID,quota,token);
-		}
+		},
+        listRootsByUsedRatio : function(token, type, offset, limit) {
+            var url = servers.roots + '/list_roots_by_used_ratio?token={0}';
+                url = String.format(url, token);
+            isValid(type)   ? url += String.format('&type={0}', type) : url;
+            isValid(offset) ? url += String.format('&offset={0}', offset) : url;
+            isValid(limit)  ? url += String.format('&limit={0}', limit) : url;
+            return url;
+        }
 	},
 	
 	//file by path
@@ -483,7 +508,11 @@ var url_templates = {
 		listPermission : function(rootID,token){
 			var url = servers.fileops + '/list_permissions?root_id={0}&token={1}';
 			return String.format(url,rootID,token);
-		}
+		},
+        groupFilesDetectionByMd5 : function(token, md5){
+            var url = servers.fileops + '/group_files_detection_by_md5?token={0}&md5={1}';
+            return String.format(url,token,md5);
+        }
 	},
 	
 	//chunked upload
@@ -564,6 +593,18 @@ var url_templates = {
 			return url;
 		}
 	},
+
+    //md5
+    md5 : {
+        list_group_metas : function(token, md5){
+            var url = servers.md5 + '/list_group_metas?token={0}&md5={1}';
+            return String.format(url, token, md5);
+        },
+        list_shares : function(token, md5){
+            var url = servers.md5 + '/list_shares?token={0}&md5={1}';
+            return String.format(url, token, md5);
+        }
+    },
 	
 	image : {
 		get : function(rootID,metaID,token){
@@ -608,6 +649,10 @@ var url_templates = {
         trend : function(token){
             var url = servers.statistics + '/trend?token={0}';
             return String.format(url,token);
+        },
+        delta : function(token, start_time, end_time) {
+            var url = servers.statistics + '/delta?token={0}&start_time={1}&end_time={2}';
+            return String.format(url, token, start_time, end_time);
         }
 	},
 	

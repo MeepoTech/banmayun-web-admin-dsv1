@@ -9,6 +9,15 @@ a{
 	cursor:pointer;
 }
 
+.clearfix:before,
+.clearfix:after {
+    content:"";
+    display:table
+}
+.clearfix:after {
+    clear:both
+}
+
 .bar-font{
 	color:#999999;
 	font-size:12px;
@@ -78,6 +87,10 @@ a{
 	line-height:32px;
 }
 
+.tool-icon{
+    width:32px
+}
+
 .manage_table{
 	margin-top:10px;
 }
@@ -94,10 +107,46 @@ a{
 	height:20px;
 }
 
+.manage_table .icon{
+    margin-left: 5px;
+    font-size: 12px
+}
+.manage_table .column-sort{
+    cursor: pointer
+}
+.manage_table .column-sort:hover,
+.manage_table .column-sort.active{
+    color: #0088cc
+}
+
 .mySelect{
 	width:150px;
 }
 
+.manualSlide{
+    display: none;
+    text-align: center
+}
+.manualSlide .manual_table td,
+.manualSlide .manual_table th{
+    vertical-align: middle;
+    text-align: center
+}
+.manualSlide .manual_table th.status,
+.manualSlide .manual_table th.ops{
+    width: 8%
+}
+
+.manualSlide .manual_table .ops-list{
+    font-size: 16px
+}
+.manualSlide .manual_table .ops-list .ops {
+    margin: 0px 3px;
+    cursor: pointer
+}
+.manualSlide .manual_table .ops-list .ops:hover {
+    color: #446cb3
+}
 .divSlide{
 	width:2306px;
 	*width:201%;
@@ -222,6 +271,17 @@ a{
 
 .chart-right{
 	margin-left:20px;
+}
+
+.chart-panel {
+    position: relative
+}
+
+.chart-button {
+    position: absolute;
+    right: 5px;
+    z-index: 10;
+    top: 25px
 }
 /*Data manage style end*/
 
@@ -363,3 +423,93 @@ button.myClose{
 }
 /*Client upload style end*/
 
+/*left tab style*/
+#info_manage .showDiv {
+    position: relative;
+    overflow: visible
+}
+#info_manage div.info-item{
+    display: none
+}
+#info_manage div.top{
+    display: block
+}
+
+.left-tab{
+    position: absolute;
+    left: -100px;
+    width: 100px
+}
+.left-tab li{
+    margin-bottom: 2px
+}
+.left-tab li a.item{
+    padding: 8px 10px;
+    text-align: center;
+    color: #fff;
+    transition: .3s
+}
+.left-tab li a.item:hover,
+.left-tab li a.active {
+    margin-left: -30px;
+    transition: .3s
+}
+.left-tab li a.green{
+    background-color: #00a65a
+}
+.left-tab li a.green:hover {
+    background-color: #008d4c
+}
+.left-tab li a.purple{
+    background-color: #605ca8
+}
+.left-tab li a.purple:hover {
+    background-color: #555299
+}
+.left-tab li a.blue{
+    background-color: #00c0ef
+}
+.left-tab li a.blue:hover {
+    background-color: #00a7d0
+}
+
+.top-tab .tab-item{
+    color: #fff;
+    border: none;
+    padding: 6px 15px;
+    text-decoration: initial;
+    font-size: 12px
+}
+.top-tab .tab-item.green {
+    background-color: #00a65a
+}
+.top-tab .tab-item.green:hover {
+    background-color: #008d4c
+}
+.top-tab .tab-item.purple {
+    background-color: #605ca8
+}
+.top-tab .tab-item.purple:hover {
+    background-color: #555299
+}
+.top-tab .tab-item.blue {
+    background-color: #00c0ef
+}
+.top-tab .tab-item.blue:hover {
+    background-color: #00a7d0
+}
+.top-tab .tab-item:hover,
+.top-tab .tab-item.active {
+    padding: 10px 15px;
+    transition: .3s
+}
+
+.date-select{
+    padding-top: 10px;
+    padding-bottom: 5px
+}
+.data-search-progress{
+    height: 5px;
+    margin-bottom: 0px;
+    display: none
+}

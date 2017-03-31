@@ -70,6 +70,19 @@ function minVal(first,second){
 	return first < second ? first : second;
 }
 
+function formatFileSize(bytes){
+    if (typeof bytes !== 'number')
+        return '';
+
+    if (bytes >= 1000000000)
+        return (bytes / 1000000000).toFixed(2) + ' GB';
+
+    if (bytes >= 1000000)
+        return (bytes / 1000000).toFixed(2) + ' MB';
+
+    return (bytes / 1000).toFixed(2) + ' KB';
+}
+
 function check_error(data){
     var error_data = eval("(" + data.responseText + ")");
     

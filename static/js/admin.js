@@ -9,7 +9,7 @@
 #      History:
 =============================================================================*/
 //Global variable
-var itemArray = Array('user','quota','group','data','info','notice','client');
+var itemArray = Array('user','quota','group','data','file','info','notice','client');
 
 var pageSize = 20;
 var strMaxLength = 15;
@@ -49,6 +49,7 @@ $(function(){
 	$('#quotaManage').click(quotaManage);
 	$('#groupManage').click(groupManage);
 	$('#dataManage').click(dataManage);
+    $('#fileManage').click(fileManage);
 	$('#infoManage').click(infoManage);
     $('#noticeManage').click(noticeManage);
 	$('#clientManage').click(clientManage);
@@ -108,6 +109,17 @@ $(function(){
 	$('#export_group').click(exportGroup);
 	$('#export_execution').click(exportExecution);
 
+    //File
+    $('#file_search_submit').click(fileSearchSubmit);
+    $('#group_file_search_submit').click(groupFileSearchSubmit);
+    $('#share_file_search_submit').click(shareFileSearchSubmit);
+    $('#group_file_check_manage').click(groupFileCheckManage);
+    $('#share_file_check_manage').click(shareFileCheckManage);
+    $('#file_delete_manage').click(fileDeleteManage);
+    $('#group_file_export_manage').click(groupFileExportManage);
+    $('#share_file_export_manage').click(shareFileExportManage);
+    fileDownload();
+
     //Notice
     $('#notice_create_manage').click(noticeCreateManage);
     $('#notice_edit_manage').click(noticeEditManage);
@@ -138,7 +150,9 @@ $(function(){
 function initEnvironment(){
 	getGroupType();
 	getGroupUserPosition();
-	listUser();
+    //User sort
+    userSortEvent();
+    listUser();
 }
 
 function flush_local_data(){
@@ -153,7 +167,9 @@ function check_logging(){
 	}
 	else{
 		local_data = JSON.parse(localStorage.data);
-	}
+	    local_data.sort = {};
+        local_data.sort.user = {};
+    }
 }
 
 function clean_environment(){
@@ -220,6 +236,10 @@ function groupManage(){
 	listGroup();
 }
 
+function fileManage(){
+    switchItem('file');
+}
+
 function dataManage(){
 	switchItem('data');
 	//clearTableHeader('data_import_table');
@@ -279,6 +299,41 @@ function resetPasswordSubmit(){
 	}
 }
 
+function userSortEvent(){
+    /*0:null, 1:asc, 2:desc*/
+    var rankIcon = {
+        "default" : "fa-sort",
+        "asc" : "fa-sort-amount-asc",
+        "desc" : "fa-sort-amount-desc"
+    };
+    $('#user_table .column-sort').off('click');
+    $('#user_table .column-sort').on('click', function(e){
+        //Init
+        $('#user_table').find(".column-sort").removeClass("active");
+        $(this).addClass("active");
+        for(var key in rankIcon) $('#user_table').find(".column-sort .icon").removeClass(rankIcon[key]);
+        $('#user_table').find(".column-sort .icon").addClass(rankIcon["default"]);
+
+        var item = $(this).attr("data-item");
+        item = typeof item === "undefined" ? "name" : item;
+        local_data.sort['user'].type = api_sort_type.user[item];
+        local_data.sort['user'].order= api_sort_order.asc;
+        var rank = parseInt($(this).attr("data-sort"));
+        for(var key in rankIcon) $(this).find(".icon").removeClass(rankIcon[key]);
+        
+        if (rank == 0 || rank == 2) {
+            $(this).attr("data-sort", 1);
+            $(this).find(".icon").addClass(rankIcon["asc"]);
+            local_data.sort['user'].order= api_sort_order.asc;
+        } else {
+            $(this).attr("data-sort", 2);
+            $(this).find(".icon").addClass(rankIcon["desc"]);
+            local_data.sort['user'].order= api_sort_order.desc;
+        }
+        listUser();
+    });
+}
+
 function listUser(){
 	clearTable('user_table');
 	var currentPageNumber = parseInt($('#user_page_current_number').val());
@@ -331,7 +386,7 @@ function listUser(){
 			createTable('user_table',dataVal);
 		}
 	}
-	var completeUrl = url_templates.user.list(local_data.token,offset,pageSize);
+	var completeUrl = url_templates.user.list(local_data.token,offset,pageSize,null,null,null,local_data.sort['user'].type,local_data.sort['user'].order);
 	request(completeUrl,"","get",after_list);
 }
 
@@ -2552,12 +2607,470 @@ function writeToFile(text){
 	}
 }
 
+function writeCSVToFile(text){
+	var blob = new Blob([text],{type: "text/csv;charset=utf-8"});
+	if(blob){
+		var path = $('#data_export_text').val();
+		if(path == "")
+			path = "导出数据";
+		saveAs(blob,path+".csv");
+	}
+}
+
+//File detection
+function fileSearchSubmit(){
+    var md5 = $('#file_search_by_md5').val();
+    var groupUrl = url_templates.md5.list_group_metas(local_data.token, md5);
+    var shareUrl = url_templates.md5.list_shares(local_data.token, md5);
+    var group_data = null, share_data = null;
+    $.when($.ajax({
+        url : groupUrl,
+        type : "get",
+        success: function(data,status){
+            group_data = data;
+        }
+    }),$.ajax({
+        url : shareUrl,
+        type : "get",
+        success : function(data,status){
+            share_data = data;
+        }
+    }))
+    .done(function(data,status){
+        if (group_data == null || share_data == null){
+            var dataVal = [];
+            var saveDataVal = [];
+            //if(currentPageNumber == 1){
+            //}
+            for(var index = 0,pos = 0 ; index < group_data.entries.length ; index++){
+                var file = group_data.entries[index];
+                //Construct data
+                dataVal[pos] = [];
+                dataVal[pos][0] = pos+1;
+                dataVal[pos][1] = '<input type="checkbox" value="'+file.id+'" name="'+pos+'">';
+                dataVal[pos][2] = file.name;
+                dataVal[pos][3] = file.owned_by_group.name;
+                dataVal[pos][4] = file.path;
+                dataVal[pos][5] = file.created_by.name;
+                dataVal[pos][6] = file.created_at.display_value;
+            }
+
+            localStorage.setItem('fileTableData',JSON.stringify(saveDataVal));
+            createTable('file_table',dataVal);
+        }
+    })
+    .fail(function(data){
+        alert("error");
+    });
+
+    /*var completeUrl = url_templates.fileop.groupFilesDetectionByMd5(local_data.token, md5);
+    request(completeUrl, "", "post", function(data,status){
+        if (status == "error"){
+            check_error(data);
+        } else {
+            var dataVal = [];
+            var saveDataVal = [];
+            //if(currentPageNumber == 1){
+            //}
+            for(var index = 0,pos = 0 ; index < data.entries.length ; index++){
+                var file = data.entries[index];
+                //Construct data
+                dataVal[pos] = [];
+                dataVal[pos][0] = pos+1;
+                dataVal[pos][1] = '<input type="checkbox" value="'+file.id+'" name="'+pos+'">';
+                dataVal[pos][2] = file.name;
+                dataVal[pos][3] = file.owned_by_group.name;
+                dataVal[pos][4] = file.path;
+                dataVal[pos][5] = file.created_by.name;
+                dataVal[pos][6] = file.created_at.display_value;
+            }
+
+            localStorage.setItem('fileTableData',JSON.stringify(saveDataVal));
+            createTable('file_table',dataVal);
+        }
+    });*/
+}
+
+function fileSearchSwitch(item){
+    var fileArray = ['group', 'share'];
+    var flag = false;
+    for(var i = 0; i < fileArray.length; i++) if(item == fileArray[i]) flag = true;
+    if (!flag) return;
+
+    $('#group_file_table').hide();
+    $('#share_file_table').hide();
+    $('#group_file_table tbody').empty();
+    $('#share_file_table tbody').empty();
+    $('#group_file_check_manage').removeAttr('checked');
+    $('#share_file_check_manage').removeAttr('checked');
+    $('#'+item+'_file_table').show();
+
+    $('#file_search_by_md5').attr('data-item', item); 
+    $table = $('#'+item+'_file_table');
+}
+
+function fileDownload(){
+    $('.file_table').off('click', '.file_name');
+    $('.file_table').on('click', '.file_name', function(e){
+        var rootID = $(this).attr('data-rid');
+        var metaID = $(this).attr('data-mid');
+        var dlUrl = url_templates.file_by_id.get(rootID, metaID, local_data.token);
+        window.location.href = dlUrl;
+    });
+}
+
+function groupFileSearchSubmit(){
+    fileSearchSwitch('group');
+    var md5 = $('#file_search_by_md5').val();
+    var groupUrl = url_templates.md5.list_group_metas(local_data.token, md5);
+    request(groupUrl, "", "get", function(data,status){
+        if (status == "error"){
+            check_error(data);
+        } else {
+            var dataVal = [];
+            var saveDataVal = [];
+            //if(currentPageNumber == 1){
+            //}
+            for(var index = 0,pos = 0 ; index < data.entries.length ; index++){
+                var file = data.entries[index];
+                //Construct data
+                dataVal[pos] = [];
+                dataVal[pos][0] = pos+1;
+                dataVal[pos][1] = String.format('<input type="checkbox" value="{0}" name="{1}" data-mid="{2}" data-rid="{3}">', file.id, pos, file.id, file.root_id);
+                dataVal[pos][2] = String.format('<a class="file_name" data-rid="{0}" data-mid="{1}">{2}</a>', file.root_id, file.id, file.name);
+                dataVal[pos][3] = file.owned_by_group.name;
+                dataVal[pos][4] = file.path;
+                dataVal[pos][5] = file.created_by.name;
+                dataVal[pos][6] = file.created_at.display_value;
+                pos += 1;
+            }
+            localStorage.setItem('groupFileTableData',JSON.stringify(saveDataVal));
+            createTable('group_file_table',dataVal);
+        }
+    });
+}
+
+
+function shareFileSearchSubmit(){
+    fileSearchSwitch('share');
+    var md5 = $('#file_search_by_md5').val();
+    var shareUrl = url_templates.md5.list_shares(local_data.token, md5);
+    request(shareUrl, "", "get", function(data,status){
+        if (status == "error"){
+            check_error(data);
+        } else {
+            var dataVal = [];
+            var saveDataVal = [];
+            for(var index = 0,pos = 0 ; index < data.entries.length ; index++){
+                var share = data.entries[index];
+                //Construct data
+                dataVal[pos] = [];
+                dataVal[pos][0] = pos+1;
+                dataVal[pos][1] = String.format('<input type="checkbox" value="{0}" name="{1}" data-sid="{2}" data-mid="{3}" data-rid="{4}">', share.id, pos, share.id, share.meta.id, share.meta.root_id);
+                dataVal[pos][2] = String.format('<a class="file_name" data-rid="{0}" data-mid="{1}">{2}</a>', share.meta.root_id, share.meta.id, share.meta.name);
+                dataVal[pos][3] = share.url;
+                dataVal[pos][4] = share.need_password ? share.password : "---";
+                dataVal[pos][5] = share.meta.created_by.name;
+                dataVal[pos][6] = share.created_by.name;
+                dataVal[pos][7] = share.created_at.display_value;
+                pos += 1;
+            }
+            localStorage.setItem('shareFileTableData',JSON.stringify(saveDataVal));
+            createTable('share_file_table',dataVal);
+        }
+    });
+}
+
+function groupFileCheckManage(){
+    if($('#group_file_check_manage').is(':checked')){
+        $('#group_file_table > tbody input:checkbox').each(function(index, element){
+            element.checked = true;
+        });
+    } else {
+        $('#group_file_table > tbody input:checkbox').each(function(index, element){
+            element.checked = false;
+        });
+    }
+}
+
+function shareFileCheckManage(){
+    if($('#share_file_check_manage').is(':checked')){
+        $('#share_file_table > tbody input:checkbox').each(function(index, element){
+            element.checked = true;
+        });
+    } else {
+        $('#share_file_table > tbody input:checkbox').each(function(index, element){
+            element.checked = false;
+        });
+    }
+}
+
+function fileDeleteManage(){
+    if(!confirm("确定要删除这些用户吗?")) return;
+
+    var item = $('#file_search_by_md5').attr('data-item');
+    if(item == "group") {
+        var $checkedList = $('#group_file_table > tbody input:checkbox:checked');
+        if($checkedList.length > 0){
+            var count = 0, total = $checkedList.length;
+            $checkedList.each(function(index, element) {
+                var rootID = $(element).attr("data-rid");
+                var metaID = $(element).attr("data-mid");
+                var completeUrl = url_templates.file_by_id.del(rootID, metaID, local_data.token);
+                request(completeUrl, "", "delete", function(data,status){
+                    if (status == "error"){
+                        check_error(data);
+                    } else {
+                        $(element).parents('tr').slideToggle(200,function(){
+                            $(element).parents('tr').remove();
+                        });
+                    }
+                });
+            });
+        }
+    } else if (item == "share") {
+        var $checkedList = $('#share_file_table > tbody input:checkbox:checked');
+        if($checkedList.length > 0){
+            var count = 0, total = $checkedList.length;
+            $checkedList.each(function(index, element) {
+                var rootID = $(element).attr("data-rid");
+                var metaID = $(element).attr("data-mid");
+                var shareID= $(element).attr("data-sid");
+                var completeUrl = url_templates.share.del(rootID,metaID,shareID,local_data.token);
+                request(completeUrl,"","delete",function(data,status){
+                    if(status == "error"){
+                        check_error(data);
+                    } else {
+                        $(element).parents('tr').slideToggle(200,function(){
+                            $(element).parents('tr').remove();
+                        });
+                    }
+                });
+            });
+        }
+    }
+}
+
+function groupFileExportManage(){
+    var md5 = $('#file_search_by_md5').val();
+    var groupUrl = url_templates.md5.list_group_metas(local_data.token, md5);
+    request(groupUrl, "", "get", function(data,status){
+        if(status == "error") {
+            check_error(data);
+        } else {
+            var text = "";
+            for (var index = 0; index < data.entries.length; index++){
+                var file = data.entries[index];
+                text = text + file.name + ",";
+                text = text + file.owned_by_group.name + ",";
+                text = text + file.path + ",";
+                text = text + file.created_by.name + ",";
+                text = text + file.created_at.display_value + "\n";
+            }
+            writeToFile(text);
+        }
+    });
+}
+
+function shareFileExportManage(){
+    var md5 = $('#file_search_by_md5').val();
+    var shareUrl = url_templates.md5.list_shares(local_data.token, md5);
+    request(shareUrl, "", "get", function(data,status){
+        if (status == "error") {
+            check_error(data);    
+        } else {
+            var text = "";
+            for (var index = 0; index < data.entries.length; index++){
+                var share = data.entries[index];
+                text = text + share.meta.name + ",";
+                text = text + share.url + ",";
+                text = text + (share.need_password ? share.password : "---") + ",";
+                text = text + share.meta.created_by.name + ",";
+                text = text + share.created_by.name + ",";
+                text = text + share.created_at.display_value + "\n";
+            }
+            writeToFile(text);
+        }
+    });
+}
+
 //Information
 function listInformation(){
 	//TODO
     getRealTimeData();
 	getTopData();
+    getTopUsedRatio();
 	getTrendData();
+
+    bindInfoListen();
+}
+
+function bindInfoListen(){
+    $('#info_manage .top-tab a').off('click');
+    $('#info_manage .top-tab a').on('click',function(e){
+        var item = $(this).attr('data-item');
+        $('#info_manage .top-tab a').removeClass('active');
+        $('#info_manage .top-tab').find('.'+item).addClass('active');
+    
+        $('#info_manage .info-item').hide();
+        $('#info_manage').find('div.'+item).show();
+    });
+
+    $('#ratio_show_type').find('button span.text').text("全部");
+    $('#ratio_show_type ul li a').off('click');
+    $('#ratio_show_type ul li a').on('click',function(e){
+        var item = $(this).attr('data-item');
+        $('#ratio_show_type').find('button span.text').text($(this).text());
+        if (item == "all") getTopUsedRatio();
+        else getTopUsedRatio(item);
+    });
+
+    //datetime
+    $('#start_months').datepicker();
+    $('#end_months').datepicker();
+
+    function parse_time(value) {
+        var times = value.split('/');
+        var month = parseInt(times[0]);
+        var year  = parseInt(times[1]);
+        return Date.UTC(year, month, 1, 0, 0, 0, 0);
+    }
+
+    function getMonths(start_time, end_time) {
+        var start_times = start_time.split('/');
+        var end_times = end_time.split('/');
+
+        var start_year = parseInt(start_times[1]);
+        var start_month= parseInt(start_times[0]);
+
+        var end_year = parseInt(end_times[1]);
+        var end_month= parseInt(end_times[0]);
+
+        var months = [];
+
+        var start_months = (start_year - 1) * 12 + start_month - 1;
+        var end_months = (end_year - 1) * 12 + end_month - 1;
+
+        for(var index = start_months; index <= end_months; index++) {
+            var s_y = Math.floor(index / 12) + 1;
+            var s_m = index % 12 + 1;
+
+            var e_index = index + 1;
+            var e_y = Math.floor(e_index / 12) + 1;
+            var e_m = e_index % 12 + 1;
+            months.push({
+                "year" : s_y,
+                "month" : s_m,
+                "start_time" : Date.UTC(s_y, s_m, 1, 0, 0, 0, 0),
+                "end_time" : Date.UTC(e_y, e_m, 1, 0, 0, 0, 0) - 1
+            });
+        }
+
+        return months;
+    }
+
+    var report_type = {
+        "search" : "查找",
+        "export" : "导出"
+    };
+
+    $('#report_export').off("click");
+    $('#report_export').on("click", function(e){
+        $('#report_submit').click();
+        var saveData = JSON.parse(localStorage.getItem('reportData'));
+        
+        var text = "日期,用户数,群组数,元数据数,文件数,空间使用量\n";
+        for (var index = 0; index < saveData.length; index++) {
+            var text = text + saveData[index][0] + ",";
+                text = text + saveData[index][1] + ",";
+                text = text + saveData[index][2] + ",";
+                text = text + saveData[index][3] + ",";
+                text = text + saveData[index][4] + ",";
+                text = text + saveData[index][5] + "\n";
+        }
+        writeToFile(text);
+    });
+
+    $('#report_submit').off('click');
+    $('#report_submit').on('click', function(e){
+        
+        var start_value = $('#start_months').find('input').val();
+        var end_value = $('#end_months').find('input').val();
+
+        var start_time = parse_time(start_value);
+        var end_time = parse_time(end_value);
+
+        var months = getMonths(start_value, end_value);
+
+        var dataVal = [], count = 0, total = months.length;
+        $('.data-search-progress').show();
+        $('.data-search-progress').find('div.bar').css("width", "0%");
+        for(var index = 0; index < months.length; index ++) {
+            var deltaUrl = url_templates.statistics.delta(local_data.token, months[index].start_time, months[index].end_time);
+            requestSync(deltaUrl, "", "get", function(data,status){
+                if (status == "error") {
+                    check_error(data);
+                } else {
+                var bytes_value = formatFileSize(Math.abs(data.bytes));
+                bytes_value = data.bytes < 0 ? '-' + bytes_value : bytes_value;
+                /*dataVal[index] = [];
+                dataVal[index][0] = String.format("{0}年{1}月", months[index].year, months[index].month);
+                dataVal[index][1] = data.user_count;
+                dataVal[index][2] = data.group_count;
+                dataVal[index][3] = data.meta_count;
+                dataVal[index][4] = data.file_count;
+                dataVal[index][5] = bytes_value;*/
+                
+                var values = [];
+                values[0] = String.format("{0}年{1}月", months[index].year, months[index].month);
+                values[1] = data.user_count;
+                values[2] = data.group_count;
+                values[3] = data.meta_count;
+                values[4] = data.file_count;
+                values[5] = bytes_value;
+
+                dataVal.push(values);
+                }
+                count ++;
+                var percent = parseInt((parseFloat(count) / parseFloat(total)) * 100) + "%";
+                $('.data-search-progress').find('div.bar').css("width", percent);
+            });
+        }
+        clearTable('report_table');
+        localStorage.setItem('reportData',JSON.stringify(dataVal));
+        createTable('report_table',dataVal);
+    });
+}
+
+function getTopUsedRatio(type){
+    var ratioUrl = url_templates.root.listRootsByUsedRatio(local_data.token,type,0,20);
+    request(ratioUrl, "", "get", function(data,status){
+        if (status == "error") {
+            check_error(data);
+            return;
+        }
+
+        function getName(item) {
+            var name = ""
+            if (item.type == "user") {
+                name = item.user.name;
+            } else if(item.type == "group") {
+                name = item.group.name;
+            }
+            return name;
+        }
+
+        var ratios = [];
+        for (var index = 0; index < data.entries.length; index++) {
+            var item = data.entries[index];
+            if(typeof item.used_ratio == "undefined") item.used_ratio = 0;
+            ratios[index] = {
+                name : getName(item),
+                value : parseFloat(Number(parseFloat(item.used_ratio) * 100).toFixed(1))
+            };
+        }
+        $('#used_ratio_rank_chart').highcharts(genBarOptions("空间使用比率Top20", "使用量百分比(%)", "使用量", ratios))
+    });
 }
 
 function getTopData(){
@@ -2686,54 +3199,74 @@ function getTrendData(){
 		if(status == "error"){
 			return;
 		}
-		var userTrendData = [];
-		var groupTrendData = [];
-		var fileTrendData = [];
-		userTrendData[0] = {
-			name : "用户数",
+		var userTrendData = {};
+		var groupTrendData = {};
+		var fileTrendData = {};
+		userTrendData = {
+			name : [{ title: "用户数",
+                      y: "y"
+                    }],
 			point: []
 		};
 		
-		groupTrendData[0] = {
-			name : "群组数",
+		groupTrendData = {
+			name : [{ title: "群组数",
+                      y: "y"
+                    }],
 			point: []
 		};
 		
-		fileTrendData[0] = {
-			name : "文件数",
-			point: []
-		};
-		
-		fileTrendData[1] = {
-			name : "meta数",
+		fileTrendData = {
+			name : [{ title: "文件数",
+                      y: "y1"
+                    },
+                    { title: "meta数",
+                      y: "y2"
+                    }],
 			point : []
 		};
 		
 		for(var index = 0 ; index < data.trend_stat_info.length ; index++){
-			userTrendData[0].point[index] = {
-				x : data.trend_stat_info[index].time_millis,
-				y : data.trend_stat_info[index].user_count
+			userTrendData.point[index] = {
+				'x' : data.trend_stat_info[index].time_millis,
+				'y' : data.trend_stat_info[index].user_count
 			};
 			
-			groupTrendData[0].point[index] = {
-				x : data.trend_stat_info[index].time_millis,
-				y : data.trend_stat_info[index].group_count
+			groupTrendData.point[index] = {
+				'x' : data.trend_stat_info[index].time_millis,
+				'y' : data.trend_stat_info[index].group_count
 			};
 			
-			fileTrendData[0].point[index] = {
-				x : data.trend_stat_info[index].time_millis,
-				y : data.trend_stat_info[index].file_count
-			};
-			
-			fileTrendData[1].point[index] = {
-				x : data.trend_stat_info[index].time_millis,
-				y : data.trend_stat_info[index].meta_count
+			fileTrendData.point[index] = {
+				'x' : data.trend_stat_info[index].time_millis,
+				'y1' : data.trend_stat_info[index].file_count,
+				'y2' : data.trend_stat_info[index].meta_count
 			};
 		}
-		$('#user_history_chart').highcharts(genLineOptions("历史用户数量","人数（位）",userTrendData));
-		$('#group_history_chart').highcharts(genLineOptions("历史群组数量","群组数（个）",groupTrendData));
-		$('#file_history_chart').highcharts(genLineOptions("历史文件与Meta数量","文件数（个）",fileTrendData));
-	});
+	    var user_history_chart = AmCharts.makeChart("user_history_chart", genAMLineOptions("历史用户数量","人数（位）",userTrendData));
+        user_history_chart.addListener("rendered", zoomChart);
+        if(user_history_chart.zoomChart){
+            user_history_chart.zoomChart();
+        }
+	    var group_history_chart = AmCharts.makeChart("group_history_chart", genAMLineOptions("历史群组数量","群组数（个）",groupTrendData));
+        group_history_chart.addListener("rendered", zoomChart);
+        if(group_history_chart.zoomChart){
+            group_history_chart.zoomChart();
+        }
+		//$('#user_history_chart').highcharts(genLineOptions("历史用户数量","人数（位）",userTrendData));
+		//$('#group_history_chart').highcharts(genLineOptions("历史群组数量","群组数（个）",groupTrendData));
+		//$('#file_history_chart').highcharts(genLineOptions("历史文件与Meta数量","文件数（个）",fileTrendData));
+	    var file_history_chart = AmCharts.makeChart("file_history_chart", genAMLineOptions("历史文件与Meta数量","文件数（个）",fileTrendData));
+        file_history_chart.addListener("rendered", zoomChart);
+        if(file_history_chart.zoomChart){
+            file_history_chart.zoomChart();
+        }
+
+        function zoomChart(){
+            file_history_chart.zoomToIndexes(Math.round(chart.dataProvider.length * 0.4), Math.round(chart.dataProvider.length * 0.55));
+        }
+    });
+
 }
 
 function genBarOptions(title,yText,itemName,data){
@@ -2771,6 +3304,86 @@ function genBarOptions(title,yText,itemName,data){
 		options.series[0].data.push(data[index].value);
 	}
 	return options;
+}
+
+function genAMLineOptions(title, yText, data){
+    var options = {
+        "type" : "serial",
+        "theme": "light",
+        "titles": [{
+            "text": title}],
+        "marginTop": 0,
+        "marginRight": 20,
+        "dataProvider": data.point,
+        "valueAxes": [{
+            "axisAlpha": 0,
+            "position": "left",
+            "title": yText
+        }],
+        "legend":{
+            "position":"absolute",
+            "maxColums": 2,
+            "top": 60,
+            "align": "left",
+            "autoMargins":true
+        },
+        "graphs": [],
+        "chartScrollbar": {},
+        "chartCursor": {
+            "categoryBalloonDateFormat": "YYYY-MM-DD",
+            "cursorAlpha": 0,
+            "valueLineEnabled":true,
+            "valueLineBalloonEnabled":true,
+            "valueLineAlpha":0.5,
+            "fullWidth":true
+        },
+        "categoryField": "x",
+        "categoryAxis": {
+            "minPeriod": "DD",
+            "dashLength": 5,
+            "parseDates": true,
+            "showFirstLabel": true,
+            "showLastLabel": true,
+            "minorGridAlpha": 0.1,
+            "minorGridEnabled": true
+        },
+        "export": {
+            "enabled": true
+        }
+    };
+	for(var index = 0 ; index < data.name.length ; index++){
+        var graph = {
+            "id": data.name[index].y,
+            "balloonText": "[[category]]<br><b><span style='font-size:14px;'>[[value]]</span></b>",
+            "bullet": "round",
+            "title": data.name[index].title,
+            "bulletSize": 2,         
+            //"lineColor": "#d1655d",
+            "lineThickness": 2,
+            "negativeLineColor": "#637bb6",
+            "type": "smoothedLine",
+            "valueField": data.name[index].y
+        };
+		options["graphs"].push(graph);
+	}
+    var chartScrollbar = {
+        "graph": data.name[0].y,
+        "gridAlpha":0,
+        "color":"#888888",
+        "scrollbarHeight":55,
+        "backgroundAlpha":0,
+        "selectedBackgroundAlpha":0.1,
+        "selectedBackgroundColor":"#888888",
+        "graphFillAlpha":0,
+        "autoGridCount":true,
+        "selectedGraphFillAlpha":0,
+        "graphLineAlpha":0.2,
+        "graphLineColor":"#c2c2c2",
+        "selectedGraphLineColor":"#888888",
+        "selectedGraphLineAlpha":1
+    };
+    //options["graphs"].push(chartScrollbar);
+    return options;
 }
 
 function genLineOptions(title,yText,data){

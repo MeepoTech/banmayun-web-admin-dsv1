@@ -48,7 +48,7 @@ function login(){
                     self.location.href="/home";
                 }
                 else{
-                    alert('您不无权登录');
+                    alert('您无权登录');
                 }
             });
 		}
