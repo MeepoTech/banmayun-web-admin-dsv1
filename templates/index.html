@@ -527,7 +527,7 @@
                     </div>
                     <div class="pull-right">
                     	<div class="btn-group">
-                        	<button class="btn btn-small" id="data_import">导入</button>
+                        	<button class="btn btn-small active" id="data_import">导入</button>
                             <button class="btn btn-small" id="data_export">导出</button>
                             <button class="btn btn-small" id="manual_entry">手工</button>
                         </div>
@@ -536,45 +536,64 @@
             </div>
             <div class="showDiv form-horizontal container-fluid">
                 <div class="row-fluid manualSlide" id="manual_slide">
-                    <div class="row-fluid">
-                        <table class="table table-bordered table-striped manual_table" id="manual_table">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th><input type="checkbox" id="manual_check_manage"></th>
-                                    <th>用户名</th>
-                                    <th>昵称</th>
-                                    <th>密码</th>
-                                    <th>来源</th>
-                                    <th>邮箱</th>
-                                    <th class="status">状态</th>
-                                    <th class="ops">操作</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>#</th>
-                                    <td><input type="checkbox" id="manual_check_manage"></th>
-                                    <td><div class="control-group"><input type="text" class="span12"></div></td>
-                                    <td><div class="control-group"><input type="text" class="span12"></div></td>
-                                    <td><div class="control-group"><input type="text" class="span12"></div></td>
-                                    <td><div class="control-group"><input type="text" class="span12"></div></td>
-                                    <td><div class="control-group"><input type="text" class="span12"></div></td>
-                                    <td>未保存</td>
-                                    <td>
-                                        <div class="ops-list">
-                                            <span class="ops fa fa-save save"></span> 
-                                            <span class="ops fa fa-trash-o trash"></span>
-                                            <span class="ops fa fa-plus plus"></span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="row-fluid">
-                        <button class="btn btn-small" id="manual_save">暂存</button>
-                        <button class="btn btn-small" id="manual_submit">提交</button>
+                    <div class="tabbable">
+                        <ul class="nav nav-tabs">
+                            <li class="active"><a href="#manual_user_tab" data-toggle="tab">用户导入</a></li>
+                            <!--<li><a href="#manual_group_tab" data-toggle="tab">群组导入</a></li>-->
+                        </ul>
+                        <div class="tab-content">
+                            <div class="tab-pane active" id="manual_user_tab">
+                                <div class="row-fluid">
+                                    <table class="table table-bordered table-striped manual_table" id="manual_user_table">
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th><input type="checkbox" disabled></th>
+                                                <th>用户名</th>
+                                                <th>昵称</th>
+                                                <th>密码</th>
+                                                <th>来源</th>
+                                                <th>邮箱</th>
+                                                <th class="status">状态</th>
+                                                <th class="ops">操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="row-fluid">
+                                    <button class="btn btn-small" id="manual_user_submit">提交</button>
+                                    <button class="btn btn-small" id="manual_user_cancel">取消</button>
+                                </div>        
+                            </div>
+                            <!--<div class="tab-pane" id="manual_group_tab">
+                                <div class="row-fluid">
+                                    <table class="table table-bordered table-striped manual_table" id="manual_group_table">
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th><input type="checkbox" disabled></th>
+                                                <th class="groupname">群组名</th>
+                                                <th class="describe">描述</th>
+                                                <th class="tab">标签</th>
+                                                <th class="type">类型</th>
+                                                <th class="search">搜索</th>
+                                                <th class="source">来源</th>
+                                                <th class="status">状态</th>
+                                                <th class="ops">操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="row-fluid">
+                                    <button class="btn btn-small" id="manual_group_submit">提交</button>
+                                    <button class="btn btn-small" id="manual_group_cancel">取消</button>
+                                </div>
+                            </div>-->
+                        </div>
                     </div>
                 </div>
                 <div class="row-fluid divSlide" id="data_slide">

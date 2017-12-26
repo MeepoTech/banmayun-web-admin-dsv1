@@ -136,6 +136,19 @@ a{
 .manualSlide .manual_table th.ops{
     width: 8%
 }
+.manualSlide .manual_table td .describe textarea{
+    width: 150px;
+    height: 20px
+}
+.manualSlide .manual_table td .groupname input{
+    width: 150px
+}
+.manualSlide .manual_table td .source input{
+    width: 80px
+} 
+.manualSlide .manual_table td .tab input{
+    width: 100px
+}
 
 .manualSlide .manual_table .ops-list{
     font-size: 16px
@@ -146,6 +159,12 @@ a{
 }
 .manualSlide .manual_table .ops-list .ops:hover {
     color: #446cb3
+}
+.manualSlide .manual_table .status.success {
+    color: #0088cc
+}
+.manualSlide .manual_table .status.error {
+    color: #b94a48
 }
 .divSlide{
 	width:2306px;

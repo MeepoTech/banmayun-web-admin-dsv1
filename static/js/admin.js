@@ -109,6 +109,9 @@ $(function(){
 	$('#export_group').click(exportGroup);
 	$('#export_execution').click(exportExecution);
 
+    //Manual
+    $('#manual_entry').click(manualEntry);
+
     //File
     $('#file_search_submit').click(fileSearchSubmit);
     $('#group_file_search_submit').click(groupFileSearchSubmit);
@@ -2060,6 +2063,8 @@ function groupUserCheckManage(){
 
 //Import
 function dataImport(){
+	var $element = $('#data_import');
+    manualShow.hide($element);
 	$('#data_slide').animate({marginLeft:'0px'},500);
 }
 
@@ -2423,7 +2428,9 @@ function resultClose(){
 
 //Export
 function dataExport(){
-	$('#data_slide').animate({marginLeft:'-1158px'},500);
+	var $element = $('#data_export');
+	manualShow.hide($element);
+    $('#data_slide').animate({marginLeft:'-1158px'},500);
 }
 
 function exportUser(){
@@ -2617,6 +2624,362 @@ function writeCSVToFile(text){
 	}
 }
 
+//Manual operation
+var manualShow = {
+	"init" : function($element) {
+		$('#data_manage .manage_bar button').removeClass('active');
+		$element.addClass('active');
+		var $table = $('#manual_user_table > tbody');
+			$table.empty();
+			$table.append(createManualTr.user());
+	},
+    "show" : function($element) {
+    	manualShow.init($element);
+        $('#manual_slide').show();
+        $('#data_slide').hide();
+    },
+    "hide" : function($element) {
+    	manualShow.init($element);
+        $('#manual_slide').hide();
+        $('#data_slide').show();
+    }
+};
+
+function createUserJson($tr){
+	return { 
+		"element" : $tr,
+		"data" : {
+			"username" : $tr.find('.username input').val(),
+			"nickname" : $tr.find('.nickname input').val(),
+			"password" : $tr.find('.password input').val(),
+			"source"   : $tr.find('.source input').val(),
+			"email"    : $tr.find('.email input').val()
+		}
+	};
+}
+
+var manualDataOps = {
+	"init" : function () {
+		var $table = $('#manual_user_table > tbody');
+			$table.empty();
+			$table.append(createManualTr.user());
+		/*if (typeof localStorage.getItem('manual_user') == 'undefined') {
+			var data = {};
+			localStorage.setItem('manual_user', JSON.stringify(data));
+			$table.append(createManualTr.user());
+		} else {
+			var data = JSON.parse(localStorage.getItem('manual_user'));
+			for (var key in data) {
+				$table.append(createManualTr.user());
+			}
+		}*/
+		//else if (type == 1) localStorage.setItem('manual_group', JSON.stringify(data));
+	},
+	"set" : function(key, value, type = 0) {
+		if (type == 0) {
+			var data = JSON.parse(localStorage.getItem('manual_user'));
+				data[key] = value;
+				localStorage.setItem('manual_user', JSON.stringify(data));
+		} else if (type == 1) {
+			var data = JSON.parse(localStorage.getItem('manual_group'));
+				data[key] = value;
+				localStorage.setItem('manual_group', JSON.stringify(data));
+		}
+	},
+	"get" : function(key, type = 0) {
+		var data;
+		if (type == 0) data = JSON.parse(localStorage.getItem('manual_user'));
+		else if (type == 1) data = JSON.parse(localStorage.getItem('manual_group'));
+		return data[key];
+	},
+	"delete" : function(key, type = 0) {
+		var data;
+		if (type == 0) {
+			data = JSON.parse(localStorage.getItem('manual_user'));
+			delete json[key];
+			localStorage.setItem('manual_user', JSON.stringify(data));
+		} else if (type == 1) {
+			data = JSON.parse(localStorage.getItem('manual_group'));
+			delete json[key];
+			localStorage.setItem('manual_group', JSON.stringify(data));
+		}
+
+	},
+	"clear" : function(type = 0) {
+		if (type ==0) localStorage.removeItem('manual_user');
+		else if (type == 1) localStorage.removeItem('manual_group');
+	}
+};
+
+function manualEvent() {
+	//Manual user table
+    var $user_table = $('#manual_user_table > tbody');
+
+    $user_table.on('click', '.ops-list .ops.save', function(e) {
+    	var $tr = $(this).parents('tr');
+    	var userArray = [];
+    	var user = createUserJson($tr);
+    		userArray.push(user);
+
+    	manualUserRegister(userArray);
+	});
+    $user_table.on('click', '.ops-list .ops.trash', function(e) {
+    	var $tr = $(this).parents('tr');
+    		$tr.remove();
+    });
+    $user_table.on('click', '.ops-list .ops.plus', function(e) {
+    	var $tr = $(this).parents('tr');
+    		$tr.after(createManualTr.user());
+    });
+
+    //Button event
+    $('#manual_user_cancel').off('click');
+    $('#manual_user_submit').off('click');
+
+    $('#manual_user_cancel').on('click', function(e){
+    	var $element = $('#manual_entry');
+    	manualShow.show($element);
+    });
+    $('#manual_user_submit').on('click', function(e){
+    	var userArray = [];
+    	$user_table.find('tr').each(function(index, element){
+    		if (!$(element).find('.checker').is(":checked")) {
+    			var user = createUserJson($(element));
+    			userArray.push(user);
+    		}
+    	});
+    	manualUserRegister(userArray);
+    });
+
+    //Manual group table
+    var $group_table = $('#manual_group_table > tbody');
+
+    $group_table.on('click', '.ops-list .ops.save', function(e) {
+	});
+    $group_table.on('click', '.ops-list .ops.trash', function(e) {
+    	var $tr = $(this).parents('tr');
+    		$tr.remove();
+    });
+    $group_table.on('click', '.ops-list .ops.plus', function(e) {
+    	var $tr = $(this).parents('tr');
+    		$tr.after(createManualTr.group());
+    });
+}
+
+var createManualTr = {
+    "user" : function() {
+        var html = 
+            '<tr>\
+            	<td>#</td>\
+            	<td><input type="checkbox" class="checker" disabled></td>\
+            	<td><div class="control-group username"><input type="text" class="span12"></div></td>\
+            	<td><div class="control-group nickname"><input type="text" class="span12"></div></td>\
+            	<td><div class="control-group password"><input type="text" class="span12"></div></td>\
+            	<td><div class="control-group source"><input type="text" class="span12"></div></td>\
+            	<td><div class="control-group email"><input type="text" class="span12"></div></td>\
+            	<td><div class="status">未提交</div></td>\
+            	<td>\
+            		<div class="ops-list">\
+	            		<span class="ops fa fa-save save"></span>\
+	            		<span class="ops fa fa-trash-o trash"></span>\
+	            		<span class="ops fa fa-plus plus"></span>\
+                    </div>\
+                </td>\
+            </tr>';
+        return html;
+    },
+    "group" : function() {
+    	var html = 
+    		'<tr>\
+    			<td>#</td>\
+    			<td><input type="checkbox" class="checker" disabled></td>\
+    			<td><div class="control-group groupname"><input type="text" class="span12"></div></td>\
+                <td>\
+                	<div class="control-group describe">\
+                		<textarea row="1"></textarea>\
+                	</div>\
+                </td>\
+                <td><div class="control-group tab"><input type="text" class="span12"></div></td>\
+                <td>\
+                	<div class="control-group type">\
+                		<select id="group_type">\
+                			<option value="protected">受保护的（加入需要审核）</option>\
+                			<option value="system_public">系统公共的（新创建的用户会自动加入）</option>\
+                			<option value="public">公开的（加入无需审核）</option>\
+                			<option value="private">私有的（禁止新成员加入）</option>\
+                        </select>\
+                    </div>\
+                </td>\
+                <td>\
+                	<div class="control-group search">\
+                		<select id="group_visible" class="span12">\
+                			<option value="true">可搜索</option>\
+                			<option value="false">不可搜索</option>\
+                		</select>\
+                	</div>\
+                </td>\
+                <td><div class="control-group source"><input type="text" class="span12"></div></td>\
+                <td><div class="status">未提交</div></td>\
+                <td>\
+                	<div class="ops-list">\
+                		<span class="ops fa fa-save save"></span>\
+                		<span class="ops fa fa-trash-o trash"></span>\
+                		<span class="ops fa fa-plus plus"></span>\
+                	</div>\
+                </td>\
+            </tr>';
+        return html;
+    }
+};
+
+function manualUserRegister(userArray){
+    for (var i = 0; i < userArray.length; i++) {
+    	checkRegisterEvent(userArray[i], function(item){
+	    	function find(username) {
+				var $element;
+				for (var i = 0; i < userArray.length; i++) {
+					if (userArray[i].data['username'] == username) {
+						$element = userArray[i].element;
+						break;
+					}
+				}
+				return $element;
+			}
+
+	    	var form = {
+	    		'name' : item['username'],
+				'email' : item['email'],
+				'display_name' : item['nickname']
+			};
+
+			form['source'] = Trim(item['source']);
+			var form = JSON.stringify(form);
+			var password = SHA256_hash(item['password']);
+			var url = url_templates.user.create(password,local_data.token);
+			request(url,form,"post",function(data, status){
+				if (status == "error") {
+				} else {
+					//Get element
+					var $element = find(data['name']);
+						$element.find('input:checkbox').attr('checked', 'checked');
+						$element.find('.status').addClass('success');
+						$element.find('.status').text('已提交');
+				}
+			});
+		});
+	}
+}
+function manualEntry() {
+	var $element = $('#manual_entry');
+    manualShow.show($element);
+    manualEvent();
+}
+
+//User register check
+function checkRegisterEvent(user, exec) {
+	var $element = user.element;
+
+	var name_dtd = $.Deferred();
+	var email_dtd= $.Deferred();
+	var pwd_dtd  = $.Deferred();
+
+	var username = $element.find('.username input').val();
+	var email = $element.find('.email input').val();
+	var password = $element.find('.password input').val();
+
+	//Regular check
+	var flag = true;
+	//1. Username check
+	var name_pattern = /^[a-zA-Z0-9_\-]{1,}$/;// 下划线、数字、字母
+	var minLen = 3, maxLen = 20;
+	var $userEle = $element.find('.username');
+	$userEle.removeClass('error');
+
+	if(!username.match(name_pattern) || username.length < minLen || username.length > maxLen){
+		$userEle.addClass('error');
+		flag = false;
+	}
+
+	//2. Email check
+	var email_pattern = /^([a-zA-Z0-9]+[_|\_|\.]?)*[a-zA-Z0-9]+@([a-zA-Z0-9]+[_|\_|\.]?)*[a-zA-Z0-9]+\.[a-zA-Z]{2,3}$/;
+	var email = $element.find('.email input').val();
+	var $emailEle = $element.find('.email');
+	$emailEle.removeClass('error');
+
+	if(!email.match(email_pattern)){
+		$emailEle.addClass('error');
+		flag = false;
+	}
+
+	//3. Password check
+	var $pwdEle = $element.find('.password');
+	var password = $element.find('.password input').val();
+	$pwdEle.removeClass('error');
+
+	if(password.length < 5 || password.length > 20){
+		$pwdEle.addClass('error');
+		flag = false;
+	}
+
+	//Remote check
+	var result = new Array();
+		result[0] = true;
+		result[1] = true;
+
+	//Username
+	var check_name = function() {
+		var dtd = $.Deferred();
+		var form = JSON.stringify({
+			"name" : username
+		});
+		var url = url_templates.user.exists();
+		request(url, form, "post", function(data,status){
+			if(status == "error"){
+				$userEle.addClass('error');
+				result[0] = false;
+			}
+			dtd.resolve();
+		});
+		return dtd.promise();
+	};
+
+	//Email
+	var check_email = function() {
+		var dtd = $.Deferred();
+		var form = JSON.stringify({
+			"email" : email
+		});
+		var completeUrl = url_templates.user.exists();
+		request(completeUrl,form,"post",function(data,status){
+			if(status == "error"){
+				$emailEle.addClass('error');
+				result[1] = false;
+			}
+			dtd.resolve();
+		});
+		return dtd.promise();
+	};
+
+	var d1 = check_name();
+	var d2 = check_email();
+
+	$.when(d1, d2)
+	.done(function(){
+		if (!result[0] || !result[1] || !flag) {
+			$element.find('.status').addClass('error');
+			$element.find('.status').text('有错误');
+		} else {
+			$element.find('.status').removeClass('error');
+			$element.find('.status').text('已提交');
+			exec(user.data);
+		}
+	})
+	.fail(function(){
+		$element.find('.status').addClass('error');
+		$element.find('.status').text('有错误');
+	});
+}
+
 //File detection
 function fileSearchSubmit(){
     var md5 = $('#file_search_by_md5').val();
@@ -2691,6 +3054,7 @@ function fileSearchSubmit(){
     });*/
 }
 
+//File Search
 function fileSearchSwitch(item){
     var fileArray = ['group', 'share'];
     var flag = false;

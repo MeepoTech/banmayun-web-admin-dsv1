@@ -1,7 +1,10 @@
 /*
 	Web sdk: designed by aizhiyuan
 */
-var apiAddress = "http://admin-azy-dsv1.meepotech.com:808/v1";
+//var apiAddress = "http://192.168.200.10:809/v1";
+var domain = location.protocol + "//" + document.location.host;
+//var domain = config.settings.DOMAIN
+var apiAddress = domain + "/v1";
 var servers = {
 	auth		  : apiAddress + '/auth',
 	users 		  : apiAddress + '/users',
