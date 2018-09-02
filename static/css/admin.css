@@ -517,6 +517,12 @@ button.myClose{
 .top-tab .tab-item.blue:hover {
     background-color: #00a7d0
 }
+.top-tab .tab-item.yellow {
+    background-color: #f39c12
+}
+.top-tab .tab-item.yellow:hover {
+    background-color: #db8b0b
+}
 .top-tab .tab-item:hover,
 .top-tab .tab-item.active {
     padding: 10px 15px;
@@ -532,3 +538,4 @@ button.myClose{
     margin-bottom: 0px;
     display: none
 }
+

@@ -12,6 +12,7 @@
 var invalid_letters = /[:"\<\>\\\/\?\*\|]/;
 var valid_int = /^\d+$/;
 var LANG = "&locale=zh_CN";
+var ajax_timeout = 120000; // 2mins
 
 //trim routine
 function LTrim(str){
@@ -92,13 +93,16 @@ function check_error(data){
         self.location.href = "/";
     }
 }
-function request(url,data,method,callback){
+function request(url,data,method,callback,loading){
+    var loadFunc = loading ? loading : null;
 	$.ajax({
 		url:url + LANG,
+        timeout: ajax_timeout,
 		data:data,
 		type:method,
 		contentType:"application/json; charset=utf-8",
 		success: callback,
+        beforeSend: loading,
 		error: callback,
 		dataType:"json"
 	});
@@ -107,6 +111,7 @@ function request(url,data,method,callback){
 function requestSync(url,data,method,callback){
 	$.ajax({
 		url:url + LANG,
+        timeout: ajax_timeout,
 		data:data,
 		type:method,
 		async:false,

@@ -3267,8 +3267,68 @@ function listInformation(){
 	getTrendData();
 
     bindInfoListen();
+    getActivity();
 }
 
+function getNowDayDate(){
+    var date = new Date();
+    var seperator = "/";
+    var month = date.getMonth() + 1;
+    if (month >= 1 && month <= 9) {
+        month = "0" + month;
+    }
+    var day = date.getDate();
+    if (day >= 0 && day <= 9) {
+        day = "0" + day;
+    }
+    return day + seperator + month + seperator + date.getFullYear();
+}
+function getTimestamp(year,month,day){
+    var date = new Date();
+
+    return Date.UTC(year, month, day, date.getHours(), date.getMinutes(), date.getSeconds(), 0);
+}
+function getActivity(){
+    //Get current time
+    var current_day = getNowDayDate();
+    $('#current_day').attr('data-date', current_day);
+    $('#current_day').find('input').val(current_day);
+    $('#current_day').datepicker();
+
+    function getActivitySummary(timestamp){
+        var search_time = timestamp == null ? +new Date() : timestamp;
+        var completeUrl = url_templates.statistics.summary(local_data.token, search_time);
+        request(completeUrl,"","get",function(data,status){
+            if (status == "success") {
+                var $body = $('#activity_table').find('tbody');
+
+                var dataVal = [], values = [];
+                values[0] = data.active_users_count_previous_day;
+                values[1] = data.active_users_count_previous_week;
+                values[2] = data.active_users_count_previous_month;
+                dataVal.push(values);
+                
+                clearTable('activity_table');
+                createTable('activity_table',dataVal);
+
+            } else {
+                check_error(data);
+            }
+        });
+    }
+
+    $('#activity_submit').off('click');
+    $('#activity_submit').on('click', function(e){
+        var times = $('#current_day').find('input').val();
+            times = times.split('/');
+        var year = parseInt(times[2]);
+        var month= parseInt(times[1]);
+        var day  = parseInt(times[0]);
+        getActivitySummary(getTimestamp(year, month, day));
+    });
+
+    $('#activity_submit').click();
+}
 function bindInfoListen(){
     $('#info_manage .top-tab a').off('click');
     $('#info_manage .top-tab a').on('click',function(e){

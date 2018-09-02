@@ -21,11 +21,12 @@ function checkRemember(){
 function login(){
 	var username = $('#username').val();
 	var password = $('#password').val();
-	
+    var flag = false;	
 	function after_login(data,status){
 		var local_data = {};
 		if(status == "error"){
-			alert('输入的用户名或密码错误！');
+			flag = true;
+            alert('输入的用户名或密码错误！');
 		}
 		else{
 			local_data.adminname = username;
@@ -48,6 +49,7 @@ function login(){
                     self.location.href="/home";
                 }
                 else{
+                    flag = true;
                     alert('您无权登录');
                 }
             });
@@ -55,7 +57,22 @@ function login(){
 	}
 	
 	var completeUrl = url_templates.auth.signIn(username,password);
-	request(completeUrl,'','post',after_login);
+	request(completeUrl,'','post',after_login, readyLogin);
+    
+    function readyLogin(){
+        if(!flag){
+            $('#loginText').css("color", "#006dcc");
+            var loginText = $("#loginText").text();
+            loginText.length < 5 && (loginText = "Login");
+            loginText += ".";
+            loginText.length > 9 && (loginText = "Login");
+            $("#loginText").text(loginText);
+            setTimeout(readyLogin, 1e3);
+        } else {
+            $('#loginText').css("color", "#000000");
+            $("#loginText").text("Login");
+        }
+    }
 }
 
 function login_keyDown(){
